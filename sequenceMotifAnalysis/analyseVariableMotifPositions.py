@@ -166,12 +166,24 @@ def getPossibleMotifs(fastaData,tmhmmData):
 def createClusterMap(dataFrame,x_axis_labels,y_axis_labels): 
     if len(dataFrame) > 0:
         custom_color_map = LinearSegmentedColormap.from_list(name='custom_navy',colors=[(0/255, 0/255, 255/255),(255/255, 0/255, 0/255)])
-        seaborn.set(font_scale=0.1) 
+        seaborn.set(font_scale=0.5) 
         heatmap = seaborn.heatmap(dataFrame, cmap=custom_color_map, cbar=True, annot=False, annot_kws={"size": 2},xticklabels=x_axis_labels,yticklabels=y_axis_labels)
-        heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0)  
-        
-        plt.show() 
+        heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0)   
         #plt.savefig("TODO/heatmap.png",dpi=600)
+        
+def createClusterMaps(dataFrames): 
+    fig, a = plt.subplots(nrows=len(dataFrames.keys()))
+    fig.subplots_adjust(wspace=0.01)
+    seaborn.set(font_scale=0.5) 
+    index = 0
+    for topology in dataFrames.keys(): 
+        if len(dataFrames[topology]["dataFrame"]) > 0:
+            custom_color_map = LinearSegmentedColormap.from_list(name='custom_navy',colors=[(0/255, 0/255, 255/255),(255/255, 0/255, 0/255)])
+            heatmap = seaborn.heatmap(dataFrames[topology]["dataFrame"],ax=a[index], cmap=custom_color_map, cbar=True, annot=False, annot_kws={"size": 1},xticklabels=AMINO_ACIDS_ONE_LETTER_CODE,yticklabels=dataFrames[topology]["yLabels"])
+            heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0, fontsize = 6)  
+        index = index + 1     
+    
+    plt.show() 
         
 def getAminoAcidLetters():
     aminoAcidLetters = None
@@ -220,9 +232,10 @@ if __name__ == "__main__":
     printProgress(3,maxSteps)   
     
     print("Generating heatmap...")  
-    dataFrame = []
-    y_axis_labels = []  
+    dataFrames = {}
+    
     for topology in possibleMotifs.keys():
+        dataFrames[topology]={"yLabels":[],"dataFrame":[]}  
         for regEx in possibleMotifs[topology]: 
             registrations = []
             
@@ -232,9 +245,9 @@ if __name__ == "__main__":
                     registrations[-1][letter] = 0                    
                 #y_axis_labels.append(regEx+"-"+str(varPosIndex+1)+"-"+topology)
                 rowLabel = regEx+"-"+topology
-                if rowLabel not in y_axis_labels:
-                    y_axis_labels.append(rowLabel) 
-                else:y_axis_labels.append("")
+                if rowLabel not in dataFrames[topology]["yLabels"]:
+                    dataFrames[topology]["yLabels"].append(rowLabel) 
+                else:dataFrames[topology]["yLabels"].append("")
              
             for motif in possibleMotifs[topology][regEx]:
                 varPosOfMotif = motif[1:-1] 
@@ -249,10 +262,10 @@ if __name__ == "__main__":
                         z = reg[aminoAcid]
                         n = len(possibleMotifs[topology][regEx])
                         quotient = z/n
-                        #if quotient != 0.0:quotient = math.log1p(quotient)
+                        #if quotient != 0.0:quotient = math.log10(quotient)
                         dataFrameContent.append(quotient)
-                    dataFrame.append(dataFrameContent)
-    
+                    dataFrames[topology]["dataFrame"].append(dataFrameContent)
+         
     printProgress(4,maxSteps)   
-    createClusterMap(dataFrame,AMINO_ACIDS_ONE_LETTER_CODE,y_axis_labels) 
-    
+    print("FINISHED...")
+    createClusterMaps(dataFrames)
