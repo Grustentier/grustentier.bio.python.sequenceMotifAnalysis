@@ -34,3 +34,5 @@ E. L. Sonnhammer, G. von Heijne, and A. Krogh, “A hidden markov model for pred
 
 <a id="4">[3]</a> 
 B. Carl and T. John, Introduction to Protein Structure, Taylor and Francis, Auflage, 2nd edition, 1998.
+
+<hr/>
