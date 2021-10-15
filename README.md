@@ -34,3 +34,10 @@ B. Carl and T. John, Introduction to Protein Structure, Taylor and Francis, Aufl
 # Graph representation of high-dimensional alpha-helical membrane protein data
 ## Motivation
 Coming Soon
+
+## References
+<a id="1">[1]</a>
+Grunert, S., Labudde, D. Graph representation of high-dimensional alpha-helical membrane protein data. BioData Mining 6, 21 (2013). https://doi.org/10.1186/1756-0381-6-21
+
+
+
