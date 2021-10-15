@@ -10,6 +10,7 @@ predictability of the topology state of a motif from its amino acid sequence. An
 Also, the information of the spatial structure and the folding of proteins to be explored can be evaluated by affinities, because the spatial structure of proteins has been stronger conserved in evolution than the sequential composition of the folded protein chains. These are individual motifs or characteristic sequence parts which expose a certain biochemical function of proteins. Why does the nature pursue the principle of structure and function separation? Residues, which support a stable domain folding, are separated from those that induce a specific function. This procedure is a very efficient strategy of evolution. Two areas were simultaneously optimised [39]: 
 * (i) the stability of the protein backbone in a given folding pattern, 
 * (ii) the design of the amino acid sequence according to a specific function. 
+
 Based on this information, further work will discuss and deal with how the evolution has spawned motifs in their function as structure building blocks. In addition, motifs originated by evolution and spatially interacting with other should be determined as structure stabilizing.
 
 
