@@ -4,6 +4,8 @@ Membrane proteins play essential roles in cellular processes of organisms. Photo
 high prediction accuracies only in certain families can be classified as functionally important and relevant for family-specific
 functional characteristics.
 
+![Image of Yaktocat](separationOfVarMotifPos.png)
+
 ## Conclusion
 In this work, 33 short sequence motifs reported in [[2]](#2) were investigated in 32 polytopic membrane protein families with domains of unknown functions. Transmembrane and nontransmembrane sequence regions were predicted using the TMHMM method [[3]](#3) and topology states were annotated to all detected sequence motif occurrences. These amino acid propensities were derived and employed to define log-odd profiles (LOP) of all variable sequence positions in the investigated motifs. Propensity tendencies according to the topology states were identified using UPGMA and XOM clustering. Both methods pointed to good separability and 
 predictability of the topology state of a motif from its amino acid sequence. An information-based prediction algorithm was implemented and assessed using cross-validation and F-measure evaluation. Motifs showing high F-measures over all or only in certain investigated protein families were identified. From this insight, we postulate that short sequence motifs can be divided in general, structure-forming elements, which are present in numerous protein families and highly specific to their topology location. But they are probably less important for functional properties. Finally, motifs showing high F-measures only in certain membrane protein families may be important elements in establishing the individual properties which are necessary for the function of an entire protein family.
