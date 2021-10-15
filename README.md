@@ -14,14 +14,8 @@ Also, the information of the spatial structure and the folding of proteins to be
 * (ii) the design of the amino acid sequence according to a specific function. 
 
  
-Read more about this work <a href="https://downloads.hindawi.com/archive/2013/249234.pdf" target="_blank">here</a>.
-
-
-
-
-
-
-
+Read more about this work in the corresponding paper <a href="https://downloads.hindawi.com/archive/2013/249234.pdf" target="_blank">here</a>.
+The corresponding code you will find <a href="https://github.com/Grustentier/sequenceMotifAnalysis/tree/main/sequenceMotifAnalysis">here</a>.
 
 ## References
 <a id="1">[1]</a>
