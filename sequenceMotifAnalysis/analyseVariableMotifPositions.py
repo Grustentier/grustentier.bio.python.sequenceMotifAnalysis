@@ -203,35 +203,8 @@ def printProgress(steps,maximum):
     for _ in range(0,int((steps/maximum)*maxSteps2Console)):
         output +="."
     print("["+output+"]", str(int(round((steps/maximum)*100,0)))+"%") 
-
-if __name__ == "__main__":  
-    fastaFilePaths = collectFilePaths(arguments.fasta_input_dir)
-    assert len(fastaFilePaths)>0,"No fasta files have been found!!!"
-    tmhmmFilePaths = collectFilePaths(arguments.tmhmm_input_dir)
-    assert len(tmhmmFilePaths)>0,"No tmhmm files have been found!!!"
-    assert len(arguments.regex)>0,"No regex found have been found!!!"
     
-    REGEXES = []
-    if str(arguments.regex).find(",") != -1:
-        REGEXES = str(arguments.regex).upper().strip(" ").split(",")
-    else:
-        REGEXES.append(str(arguments.regex).upper().strip(" "))
-        
-    AMINO_ACIDS_ONE_LETTER_CODE = getAminoAcidLetters()
-     
-    maxSteps = 4   
-    printProgress(0,maxSteps)
-    print("Parsing and collecing fast files...")
-    fastaData = collectFastaData(fastaFilePaths)   
-    printProgress(1,maxSteps) 
-    print("Parsing and collecing tmhmm files...")
-    tmhmmData = collectTmhmmData(tmhmmFilePaths)
-    printProgress(2,maxSteps)    
-    print("Gathering motifs from sequences...")      
-    possibleMotifs = getPossibleMotifs(fastaData,tmhmmData)
-    printProgress(3,maxSteps)   
-    
-    print("Generating heatmap...")  
+def getDataFrames(possibleMotifs):
     dataFrames = {}
     
     for topology in possibleMotifs.keys():
@@ -265,6 +238,38 @@ if __name__ == "__main__":
                         #if quotient != 0.0:quotient = math.log10(quotient)
                         dataFrameContent.append(quotient)
                     dataFrames[topology]["dataFrame"].append(dataFrameContent)
+                    
+    return dataFrames
+
+if __name__ == "__main__":  
+    fastaFilePaths = collectFilePaths(arguments.fasta_input_dir)
+    assert len(fastaFilePaths)>0,"No fasta files have been found!!!"
+    tmhmmFilePaths = collectFilePaths(arguments.tmhmm_input_dir)
+    assert len(tmhmmFilePaths)>0,"No tmhmm files have been found!!!"
+    assert len(arguments.regex)>0,"No regex found have been found!!!"
+    
+    REGEXES = []
+    if str(arguments.regex).find(",") != -1:
+        REGEXES = str(arguments.regex).upper().strip(" ").split(",")
+    else:
+        REGEXES.append(str(arguments.regex).upper().strip(" "))
+        
+    AMINO_ACIDS_ONE_LETTER_CODE = getAminoAcidLetters()
+     
+    maxSteps = 4   
+    printProgress(0,maxSteps)
+    print("Parsing and collecing fast files...")
+    fastaData = collectFastaData(fastaFilePaths)   
+    printProgress(1,maxSteps) 
+    print("Parsing and collecing tmhmm files...")
+    tmhmmData = collectTmhmmData(tmhmmFilePaths)
+    printProgress(2,maxSteps)    
+    print("Gathering motifs from sequences...")      
+    possibleMotifs = getPossibleMotifs(fastaData,tmhmmData)
+    printProgress(3,maxSteps)   
+    
+    print("Generating heatmap...")  
+    dataFrames = getDataFrames(possibleMotifs)
          
     printProgress(4,maxSteps)   
     print("FINISHED...")
