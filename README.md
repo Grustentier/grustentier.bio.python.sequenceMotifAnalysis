@@ -5,5 +5,15 @@ high prediction accuracies only in certain families can be classified as functio
 functional characteristics.
 
 ## Conclusion
-In this work, 33 short sequence motifs reported in [*Y. Liu, D. M. Engelman, and M. Gerstein, “Genomic analysis of membrane protein families: abundance and conserved motifs,” Genome Biology, vol. 3, no. 10, research0054, 2002*] were investigated in 32 polytopic membrane protein families
+In this work, 33 short sequence motifs reported in [1] were investigated in 32 polytopic membrane protein families
 
+
+
+
+
+
+
+
+
+## References
+<a id="1">[1]</a>  Y. Liu, D. M. Engelman, and M. Gerstein, “Genomic analysis of membrane protein families: abundance and conserved motifs,” Genome Biology, vol. 3, no. 10, research0054, 2002
