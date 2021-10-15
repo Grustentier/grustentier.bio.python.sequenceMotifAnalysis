@@ -11,7 +11,9 @@ Also, the information of the spatial structure and the folding of proteins to be
 * (i) the stability of the protein backbone in a given folding pattern, 
 * (ii) the design of the amino acid sequence according to a specific function. 
 
-Based on this information, further work will discuss and deal with how the evolution has spawned motifs in their function as structure building blocks. In addition, motifs originated by evolution and spatially interacting with other should be determined as structure stabilizing.
+ 
+Read more about this work <a href="https://downloads.hindawi.com/archive/2013/249234.pdf">here</a>.
+
 
 
 
