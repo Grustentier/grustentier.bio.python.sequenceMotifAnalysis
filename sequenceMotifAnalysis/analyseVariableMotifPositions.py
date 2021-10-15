@@ -21,28 +21,34 @@ print("""
 """)
 
 '''
-Analyzing the variable positions of given sequence motifs with a regEx XYn.
+Analyzing the variable positions of given sequence motifs with regEx like XYn.
 X represents the starting amino acid and Y the ending by n-1 variable positions.
-For example, a GG4 motif with n-1 is represented by three variable positions (GxxxG).
+For example, a GG4 motif with n-1 is represented by three variable x positions (GxxxG).
 These variable positions have to be considered statistically within the topologies transmembrane (tm), non-transmembrane (ntm) and transition (trans).
 '''
 
 import os
 import re
 import math
+import numpy
+import pandas
 import seaborn
 import argparse
-from cv2 import data 
-import matplotlib.pyplot as plt
+from cv2 import data
+from scipy import stats
+import matplotlib.pyplot as plt 
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 from matplotlib.colors import LinearSegmentedColormap
 
 parser = argparse.ArgumentParser(description='Code for analysis of variable sequence motif positions  for different topologies.')
-parser.add_argument('--fasta_input_dir', default='./testdata/fasta', help='Path to the input dir including fasta files.')
-parser.add_argument('--tmhmm_input_dir', default='./testdata/tmhmm', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
+parser.add_argument('--fasta_input_dir', default='./testdata/fasta/DUF', help='Path to the input dir including fasta files.')
+parser.add_argument('--tmhmm_input_dir', default='./testdata/tmhmm/DUF', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
 #parser.add_argument('--export_dir', default='', type=str, help='The export/output directory for exporting heatmap')
 parser.add_argument('--max_variable_positions', default=9, type=int, help='The export/output directory')
 parser.add_argument('--sort_by', default=None, type=str, help='Sorting amin acid presentation by properties like: alphabetical or hydrophob.')
 parser.add_argument('--regex', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
+#parser.add_argument('--regex', default='GG4,SG4,AA3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
  
 arguments = parser.parse_args() 
 
@@ -50,7 +56,7 @@ AMINO_ACIDS_ONE_LETTER_CODE_ALPHABETICAL = ["A","C","D","E","F","G","H","I","K",
 AMINO_ACIDS_ONE_LETTER_CODE_HYDROPHOB =    ["A","C","F","I","L","M","P","T","V","W","Y","D","E","G","H","K","N","Q","R","S"]
 AMINO_ACIDS_ONE_LETTER_CODE_SMALL =        ["A","C","D","G","N","P","V","S","T","E","F","H","I","K","L","M","Q","R","W","Y"]
 AMINO_ACIDS_ONE_LETTER_CODE_PLOAR =        ["C","D","E","H","K","N","Q","R","S","T","W","Y","A","F","G","I","L","M","P","V"]
- 
+
 def cleanString(string,replacement='-'):
     a =  re.sub('[^a-zA-Z0-9.?]',replacement,string) 
     return re.sub(replacement+'+', replacement, a)
@@ -64,9 +70,9 @@ def collectFilePaths(directory):
 
 def getFastaData(filePath):
     file = open(filePath, 'r')
-    lines = file.readlines()
-    
+    lines = file.readlines()    
     fastaData = []
+    
     for line in lines:
         line = str(line).replace("\n","")
         if str(line).startswith(">"):
@@ -79,14 +85,15 @@ def getFastaData(filePath):
 
 def getTmhmmData(filePath):
     file = open(filePath, 'r')
-    lines = file.readlines()
-    
+    lines = file.readlines()    
     tmhmmData = []
     TMHMM_PROTEIN = None
+    
     for line in lines:        
         line = str(line).replace("\n","")
         if str(line).startswith("<pre>"):            
             TMHMM_PROTEIN = {"id":str(line).split(" ")[1],"areas":[]}
+            
         if str(line).startswith("</pre>"):
             tmhmmData.append(TMHMM_PROTEIN)
             TMHMM_PROTEIN = None
@@ -101,18 +108,23 @@ def getTmhmmData(filePath):
 
 def collectFastaData(fastaFilePaths):
     fastaData = []
+    
     for fastaFilePath in fastaFilePaths: 
         data = getFastaData(fastaFilePath)
         if data is not None:
             fastaData.extend(data)
+            #if len(fastaData) > 3:break
+            
     return fastaData
 
 def collectTmhmmData(tmhmmFilePaths):
     tmhmmData = []
+    
     for tmhmmFilePath in tmhmmFilePaths: 
         data = getTmhmmData(tmhmmFilePath)
         if data is not None:
             tmhmmData.extend(data)
+            
     return tmhmmData
 
 def findCorrespondingTmhmmData(fasta_id,tmhmmData):    
@@ -120,6 +132,7 @@ def findCorrespondingTmhmmData(fasta_id,tmhmmData):
         tmhmm_id = data["id"]  
         if str(fasta_id).lower() == str(tmhmm_id).lower():
             return data
+        
     return None
 
 def getTopology(start,end,tmhmmData):  
@@ -134,8 +147,10 @@ def getTopology(start,end,tmhmmData):
             elif topology == "tmhelix": 
                 return "tm"
             else: return "new_unknow_topology"
+            
         if start >= start_tmhmm and start <= end_tmhmm and end > end_tmhmm:
             return "trans"
+        
         if start < start_tmhmm and end >= start_tmhmm and end <= end_tmhmm:
             return "trans"
         
@@ -143,6 +158,7 @@ def getTopology(start,end,tmhmmData):
     
 def getPossibleMotifs(fastaData,tmhmmData):
     possibleMotifs = {"tm":{},"ntm":{},"trans":{}}
+    
     for data in fastaData: 
         sequence = data["sequence"] 
         fasta_id = data["id"]
@@ -162,20 +178,13 @@ def getPossibleMotifs(fastaData,tmhmmData):
                     possibleMotifs[topology2Assign][regEx].append(motifSeq) 
          
     return possibleMotifs 
-
-def createClusterMap(dataFrame,x_axis_labels,y_axis_labels): 
-    if len(dataFrame) > 0:
-        custom_color_map = LinearSegmentedColormap.from_list(name='custom_navy',colors=[(0/255, 0/255, 255/255),(255/255, 0/255, 0/255)])
-        seaborn.set(font_scale=0.5) 
-        heatmap = seaborn.heatmap(dataFrame, cmap=custom_color_map, cbar=True, annot=False, annot_kws={"size": 2},xticklabels=x_axis_labels,yticklabels=y_axis_labels)
-        heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0)   
-        #plt.savefig("TODO/heatmap.png",dpi=600)
-        
-def createClusterMaps(dataFrames): 
+     
+def createHeatMaps(dataFrames): 
     fig, a = plt.subplots(nrows=len(dataFrames.keys()))
     fig.subplots_adjust(wspace=0.01)
     seaborn.set(font_scale=0.5) 
     index = 0
+    
     for topology in dataFrames.keys(): 
         if len(dataFrames[topology]["dataFrame"]) > 0:
             custom_color_map = LinearSegmentedColormap.from_list(name='custom_navy',colors=[(0/255, 0/255, 255/255),(255/255, 0/255, 0/255)])
@@ -183,7 +192,7 @@ def createClusterMaps(dataFrames):
             heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0, fontsize = 6)  
         index = index + 1     
     
-    plt.show() 
+    plt.show()
         
 def getAminoAcidLetters():
     aminoAcidLetters = None
@@ -200,11 +209,13 @@ def getAminoAcidLetters():
 def printProgress(steps,maximum):
     output = ""
     maxSteps2Console = 20
+    
     for _ in range(0,int((steps/maximum)*maxSteps2Console)):
         output +="."
+        
     print("["+output+"]", str(int(round((steps/maximum)*100,0)))+"%") 
     
-def getDataFrames(possibleMotifs):
+def getHeatmapDataFrames(possibleMotifs):
     dataFrames = {}
     
     for topology in possibleMotifs.keys():
@@ -212,7 +223,7 @@ def getDataFrames(possibleMotifs):
         for regEx in possibleMotifs[topology]: 
             registrations = []
             
-            for varPosIndex in range(0,int(regEx[2:])-1):
+            for _ in range(0,int(regEx[2:])-1):
                 registrations.append({})
                 for letter in AMINO_ACIDS_ONE_LETTER_CODE:                    
                     registrations[-1][letter] = 0                    
@@ -222,24 +233,101 @@ def getDataFrames(possibleMotifs):
                     dataFrames[topology]["yLabels"].append(rowLabel) 
                 else:dataFrames[topology]["yLabels"].append("")
              
-            for motif in possibleMotifs[topology][regEx]:
-                varPosOfMotif = motif[1:-1] 
+            for motifSequence in possibleMotifs[topology][regEx]:
+                varPosOfMotif = motifSequence[1:-1] 
                 for pos in range(0,len(varPosOfMotif)):
                     if varPosOfMotif[pos] in AMINO_ACIDS_ONE_LETTER_CODE:
                         registrations[pos][varPosOfMotif[pos]]+=1
                     
             if len(possibleMotifs[topology][regEx]) > 0:
-                for reg in registrations: 
+                for pos in range(0,len(registrations)): 
                     dataFrameContent = []
-                    for aminoAcid in AMINO_ACIDS_ONE_LETTER_CODE:
-                        z = reg[aminoAcid]
-                        n = len(possibleMotifs[topology][regEx])
-                        quotient = z/n
-                        #if quotient != 0.0:quotient = math.log10(quotient)
+                    for aminoAcid in AMINO_ACIDS_ONE_LETTER_CODE: 
+                        #quotient = registrations[pos][aminoAcid] / len(possibleMotifs[topology][regEx])
+                        quotient = registrations[pos][aminoAcid] / AMINO_ACID_OCCURRENCES[pos]
+                        if quotient != 0.0:quotient = math.log(quotient)
                         dataFrameContent.append(quotient)
                     dataFrames[topology]["dataFrame"].append(dataFrameContent)
                     
     return dataFrames
+
+def getPositionSpecificStatistics(possibleMotifs):
+    positionSpecificStatistics= [] 
+    
+    for topology in possibleMotifs.keys():         
+        for regEx in possibleMotifs[topology]:             
+            regExsStatistic = []             
+            
+            for pos in range(0,int(regEx[2:])-1): 
+                regExsStatistic.append({"regEx":regEx,"position":pos,"topology":topology,"occurences":[0 for _ in AMINO_ACIDS_ONE_LETTER_CODE],"occurence-ratios":[0.0 for _ in AMINO_ACIDS_ONE_LETTER_CODE]}) 
+             
+            for motifSequence in possibleMotifs[topology][regEx]:
+                varPosOfMotif = motifSequence[1:-1] 
+                for pos in range(0,len(varPosOfMotif)):
+                    if varPosOfMotif[pos] in AMINO_ACIDS_ONE_LETTER_CODE:
+                        indexInArray = AMINO_ACIDS_ONE_LETTER_CODE.index(varPosOfMotif[pos])
+                        regExsStatistic[pos]["occurences"][indexInArray]+=1
+                        
+            for currentRegExsStatistic in regExsStatistic:
+                for pos in range(0, len(currentRegExsStatistic["occurence-ratios"])):                    
+                    '''
+                        Within the corresponding research article log(P(a|pos|topology)/P(a|nature))...
+                        Here a simpler information base approach. 
+                    '''                        
+                    #quotient = currentRegExsStatistic["occurences"][pos] / len(possibleMotifs[topology][regEx])
+                    quotient = currentRegExsStatistic["occurences"][pos] / AMINO_ACID_OCCURRENCES[pos]                    
+                    if quotient != 0.0:quotient = math.log(quotient)
+                    currentRegExsStatistic["occurence-ratios"][pos] = quotient
+             
+            positionSpecificStatistics.extend(regExsStatistic)     
+            
+    return positionSpecificStatistics
+
+def getSpearmanDistanceMatrix(positionSpecificStatistics):
+    matrix = [] 
+    
+    for i in range(0,len(positionSpecificStatistics)):
+        comatrix = [] 
+        for j in range(0,len(positionSpecificStatistics)):
+            correlation,_ = stats.spearmanr(positionSpecificStatistics[i]["occurence-ratios"], positionSpecificStatistics[j]["occurence-ratios"])
+            comatrix.append(correlation)            
+        matrix.append(comatrix)
+        
+    return matrix
+
+def cluster(distanceMatrixObjects,cluster = 3):
+    fig, a = plt.subplots(nrows=len(distanceMatrixObjects))
+    fig.subplots_adjust(wspace=0.01)
+    seaborn.set(font_scale=0.5)     
+    index = 0
+    
+    for matrixDataObject in distanceMatrixObjects: 
+        pca = PCA(2) 
+        df = pca.fit_transform(matrixDataObject["matrix"])     
+        X = numpy.array(df)        
+        kmeans = KMeans(n_clusters= cluster)        
+        labels = kmeans.fit_predict(X)
+        centroids = kmeans.cluster_centers_
+        classes = numpy.unique(labels)
+        colors = ["red","green","blue","orange"]
+        for clazz in labels:         
+            filtered_label = X[labels == clazz]
+            a[index].scatter(filtered_label[:,0], filtered_label[:,1],color=colors[list(classes).index(clazz)])    
+            
+        a[index].scatter(centroids[:,0] , centroids[:,1] , s = 80, color = 'k')    
+        index = index + 1
+        
+    plt.show()
+    
+def getAminoAcidOccurrencesinNature(fastaData):
+    occurrences = [0 for _ in AMINO_ACIDS_ONE_LETTER_CODE]
+    
+    for data in fastaData: 
+        for letter in data["sequence"]: 
+            if str(letter).upper() in AMINO_ACIDS_ONE_LETTER_CODE: 
+                occurrences[AMINO_ACIDS_ONE_LETTER_CODE.index(str(letter).upper())]+=1
+                
+    return occurrences        
 
 if __name__ == "__main__":  
     fastaFilePaths = collectFilePaths(arguments.fasta_input_dir)
@@ -256,21 +344,40 @@ if __name__ == "__main__":
         
     AMINO_ACIDS_ONE_LETTER_CODE = getAminoAcidLetters()
      
-    maxSteps = 4   
+    maxSteps = 7   
     printProgress(0,maxSteps)
+    
     print("Parsing and collecing fast files...")
     fastaData = collectFastaData(fastaFilePaths)   
     printProgress(1,maxSteps) 
+    
     print("Parsing and collecing tmhmm files...")
     tmhmmData = collectTmhmmData(tmhmmFilePaths)
     printProgress(2,maxSteps)    
+    
     print("Gathering motifs from sequences...")      
     possibleMotifs = getPossibleMotifs(fastaData,tmhmmData)
     printProgress(3,maxSteps)   
     
+    print("Determining amino acid occurences in nature")
+    AMINO_ACID_OCCURRENCES = getAminoAcidOccurrencesinNature(fastaData)
+    
+    print("Generating some statistics...")
+    positionSpecificStatistics = getPositionSpecificStatistics(possibleMotifs) 
+    printProgress(4,maxSteps) 
+      
+    print("Generating some distance matrices...")    
+    distanceMatrices = [{"title":"Clustering based on position specifi occurrences","matrix":[positionSpecificStatistics[i]["occurence-ratios"] for i in range(0,len(positionSpecificStatistics))]}] 
+    distanceMatrices.append({"title":"Clustering based on spearman correlation","matrix":getSpearmanDistanceMatrix(positionSpecificStatistics)})
+    printProgress(5,maxSteps)   
+    
+    print("Clustering...")    
+    cluster(distanceMatrices)
+    printProgress(6,maxSteps) 
+    
     print("Generating heatmap...")  
-    dataFrames = getDataFrames(possibleMotifs)
-         
-    printProgress(4,maxSteps)   
+    dataFrames = getHeatmapDataFrames(possibleMotifs)         
+    printProgress(7,maxSteps) 
+      
     print("FINISHED...")
-    createClusterMaps(dataFrames)
+    createHeatMaps(dataFrames)
