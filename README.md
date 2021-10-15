@@ -5,7 +5,7 @@ high prediction accuracies only in certain families can be classified as functio
 functional characteristics.
 
 ## Conclusion
-In this work, 33 short sequence motifs reported in [1] were investigated in 32 polytopic membrane protein families
+In this work, 33 short sequence motifs reported in [[1]] were investigated in 32 polytopic membrane protein families
 
 
 
