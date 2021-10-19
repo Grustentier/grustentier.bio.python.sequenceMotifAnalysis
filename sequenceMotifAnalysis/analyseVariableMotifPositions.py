@@ -25,6 +25,10 @@ Analyzing the variable positions of given sequence motifs with regEx like XYn.
 X represents the starting amino acid and Y the ending by n-1 variable positions.
 For example, a GG4 motif with n-1 is represented by three variable x positions (GxxxG).
 These variable positions have to be considered statistically within the topologies transmembrane (tm), non-transmembrane (ntm) and transition (trans).
+
+Steffen Grunert, Florian Heinke, Dirk Labudde, 
+"Structure Topology Prediction of Discriminative Sequence Motifs in Membrane Proteins with Domains of Unknown Functions", 
+Structural Biology, vol. 2013, Article ID 249234, 10 pages, 2013. https://doi.org/10.1155/2013/249234
 '''
 
 import os
@@ -42,8 +46,8 @@ from sklearn.decomposition import PCA
 from matplotlib.colors import LinearSegmentedColormap
 
 parser = argparse.ArgumentParser(description='Code for analysis of variable sequence motif positions  for different topologies.')
-parser.add_argument('--fasta_input_dir', default='./testdata/fasta/DUF', help='Path to the input dir including fasta files.')
-parser.add_argument('--tmhmm_input_dir', default='./testdata/tmhmm/DUF', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
+parser.add_argument('--fasta_input_dir', default='testdata'+os.sep+'fasta'+os.sep+'rhodopsins', help='Path to the input dir including fasta files.')
+parser.add_argument('--tmhmm_input_dir', default='testdata'+os.sep+'tmhmm'+os.sep+'rhodopsins', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
 #parser.add_argument('--export_dir', default='', type=str, help='The export/output directory for exporting heatmap')
 parser.add_argument('--max_variable_positions', default=9, type=int, help='The export/output directory')
 parser.add_argument('--sort_by', default=None, type=str, help='Sorting amin acid presentation by properties like: alphabetical or hydrophob.')
@@ -206,14 +210,16 @@ def getAminoAcidLetters():
     
     return aminoAcidLetters
 
+lastProgressValue = None 
 def printProgress(steps,maximum):
     output = ""
     maxSteps2Console = 20
-    
-    for _ in range(0,int((steps/maximum)*maxSteps2Console)):
-        output +="."
-        
-    print("["+output+"]", str(int(round((steps/maximum)*100,0)))+"%") 
+    for _ in range(0,int((steps/maximum)*maxSteps2Console)):output +="."
+    value = int(round((steps/maximum)*100,0))
+    global lastProgressValue
+    if lastProgressValue != value:
+        print("["+output+"]", str(value)+"%")
+        lastProgressValue = value 
     
 def getHeatmapDataFrames(possibleMotifs):
     dataFrames = {}
