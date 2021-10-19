@@ -32,13 +32,13 @@ B. Carl and T. John, Introduction to Protein Structure, Taylor and Francis, Aufl
 <hr/>
 
 # Graph representation of high-dimensional alpha-helical membrane protein data
-#Background
+## Background
 In genomics and proteomics, membrane protein analysis have shown that such analyses are very important to support the understanding of complex biological processes. In Genome-wide investigations of membrane proteins a large number of short, distinct sequence motifs has been revealed. Such motifs found so far support the understanding of the folded membrane protein in the membrane environment. They provide important information about functional or stabilizing properties. Recently several integrative approaches have been proposed to extract meaningful information out of the membrane environment. However, many information based approaches deliver results having deficits of visualisation outputs. Outgoing from high-throughput protein data analysis, these outputs play an important role in the evaluation of high-dimensional protein data, to establish a biological relationship and ultimately to provide useful information for research.
 
-#Results
+## Results
 We have evaluated different resulting graphs generated from statistical analysis of consecutive motifs in helical structures of the membrane environment. Our results show that representative motifs with high occurrence in all investigated protein families are responsible for the general importance in alpha-helical membrane structure formation. Further, motifs which often occur with others in their function as so called “hubs” lead to the assumption, that these motifs constitute as important components in helical structures within the membrane. Otherwise, consecutive motifs and hubs which show a high occurrence in certain families only can be classified as important for family-specific functional characteristics. Summarized, we are able to bridge our graphical results from high-throughput analysis of membrane proteins over networking with databases to a biological context.
 
-#Conclusions
+## Conclusions
 Our results and the corresponding graphical visualisation support the understanding and interpretation of structure forming and functional motifs of membrane proteins. Our results are useful to interpret and refine results of common developed approaches. At last we show a simple way to visualise high-dimensional protein data in context to biological relevant information.
 
 ## References
