@@ -31,7 +31,7 @@ B. Carl and T. John, Introduction to Protein Structure, Taylor and Francis, Aufl
 
 <hr/>
 
-# Graph representation of high-dimensional alpha-helical membrane protein data [[1]](#1)
+# Graph representation of high-dimensional alpha-helical membrane protein data [[4]](#4)
 ## Background
 In genomics and proteomics, membrane protein analysis have shown that such analyses are very important to support the understanding of complex biological processes. In Genome-wide investigations of membrane proteins a large number of short, distinct sequence motifs has been revealed. Such motifs found so far support the understanding of the folded membrane protein in the membrane environment. They provide important information about functional or stabilizing properties. Recently several integrative approaches have been proposed to extract meaningful information out of the membrane environment. However, many information based approaches deliver results having deficits of visualisation outputs. Outgoing from high-throughput protein data analysis, these outputs play an important role in the evaluation of high-dimensional protein data, to establish a biological relationship and ultimately to provide useful information for research.
 
@@ -47,7 +47,7 @@ Read more about this work in the corresponding paper <a href="https://doi.org/10
 The corresponding code you will find <a href="https://github.com/Grustentier/sequenceMotifAnalysis/tree/main/sequenceMotifAnalysis">here</a>.
 
 ## References
-<a id="1">[1]</a>
+<a id="4">[4]</a>
 Grunert, S., Labudde, D. Graph representation of high-dimensional alpha-helical membrane protein data. BioData Mining 6, 21 (2013). https://doi.org/10.1186/1756-0381-6-21
 
 
