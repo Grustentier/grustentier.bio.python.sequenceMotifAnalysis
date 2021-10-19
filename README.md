@@ -43,6 +43,9 @@ We have evaluated different resulting graphs generated from statistical analysis
 ## Conclusions
 Our results and the corresponding graphical visualisation support the understanding and interpretation of structure forming and functional motifs of membrane proteins. Our results are useful to interpret and refine results of common developed approaches. At last we show a simple way to visualise high-dimensional protein data in context to biological relevant information.
 
+Read more about this work in the corresponding paper <a href="https://doi.org/10.1186/1756-0381-6-21" target="_blank">here</a>.
+The corresponding code you will find <a href="https://github.com/Grustentier/sequenceMotifAnalysis/tree/main/sequenceMotifAnalysis">here</a>.
+
 ## References
 <a id="1">[1]</a>
 Grunert, S., Labudde, D. Graph representation of high-dimensional alpha-helical membrane protein data. BioData Mining 6, 21 (2013). https://doi.org/10.1186/1756-0381-6-21
