@@ -58,8 +58,8 @@ parser.add_argument('--tmhmm_input_dir', default='testdata'+os.sep+'tmhmm'+os.se
 #parser.add_argument('--export_dir', default='', type=str, help='The export/output directory for exporting heatmap')
 parser.add_argument('--max_variable_positions', default=9, type=int, help='The export/output directory')
 parser.add_argument('--sort_by', default=None, type=str, help='Sorting amin acid presentation by properties like: alphabetical or hydrophob.')
-#parser.add_argument('--regex', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
-parser.add_argument('--regex', default='GG4,SG4,AA3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
+parser.add_argument('--regex', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
+#parser.add_argument('--regex', default='GG4,SG4,AA3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
  
 arguments = parser.parse_args() 
 
