@@ -47,6 +47,7 @@ import argparse
 from cv2 import data
 from scipy import stats
 import matplotlib.pyplot as plt 
+from sklearn.manifold import MDS
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from matplotlib.colors import LinearSegmentedColormap
@@ -57,8 +58,8 @@ parser.add_argument('--tmhmm_input_dir', default='testdata'+os.sep+'tmhmm'+os.se
 #parser.add_argument('--export_dir', default='', type=str, help='The export/output directory for exporting heatmap')
 parser.add_argument('--max_variable_positions', default=9, type=int, help='The export/output directory')
 parser.add_argument('--sort_by', default=None, type=str, help='Sorting amin acid presentation by properties like: alphabetical or hydrophob.')
-parser.add_argument('--regex', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
-#parser.add_argument('--regex', default='GG4,SG4,AA3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
+#parser.add_argument('--regex', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
+parser.add_argument('--regex', default='GG4,SG4,AA3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
  
 arguments = parser.parse_args() 
 
@@ -123,7 +124,6 @@ def collectFastaData(fastaFilePaths):
         data = getFastaData(fastaFilePath)
         if data is not None:
             fastaData.extend(data)
-            #if len(fastaData) > 3:break
             
     return fastaData
 
@@ -296,38 +296,93 @@ def getPositionSpecificStatistics(possibleMotifs):
     return positionSpecificStatistics
 
 def getSpearmanDistanceMatrix(positionSpecificStatistics):
-    matrix = [] 
+    data = {}
     
     for i in range(0,len(positionSpecificStatistics)):
         comatrix = [] 
         for j in range(0,len(positionSpecificStatistics)):
             correlation,_ = stats.spearmanr(positionSpecificStatistics[i]["occurence-ratios"], positionSpecificStatistics[j]["occurence-ratios"])
-            comatrix.append(correlation)            
-        matrix.append(comatrix)
+            comatrix.append(correlation)   
+        dataKey = positionSpecificStatistics[i]["regEx"]+"-"+str(positionSpecificStatistics[i]["position"])
+        data[dataKey] = comatrix   
         
-    return matrix
+    data["topology"] = [positionSpecificStatistics[i]["topology"] for i in range(0,len(positionSpecificStatistics))]
+    return pandas.DataFrame(data)
 
-def cluster(distanceMatrixObjects,cluster = 3):
-    fig, a = plt.subplots(nrows=len(distanceMatrixObjects))
-    fig.subplots_adjust(wspace=0.01)
+def cluster(dataFrames,cluster = 3):
+    fig, a = plt.subplots(nrows=4,ncols=len(dataFrames))
+    fig.subplots_adjust(wspace=0.2,hspace=0.4)
     seaborn.set(font_scale=0.5)     
-    index = 0
+    col = 0
+    row = 0
     
-    for matrixDataObject in distanceMatrixObjects: 
-        pca = PCA(2) 
-        df = pca.fit_transform(matrixDataObject["matrix"])     
-        X = numpy.array(df)        
+    targets = ['tm', 'ntm', 'trans']
+    colors = ['r', 'g', 'b', 'c', 'm']
+        
+    for dataFrame in dataFrames: 
+        features = dataFrame.columns[0:-1]        
+        x = dataFrame.loc[:, features].values
+        #y = dataFrame.loc[:,['topology']].values
+        
+        ''' PCA scatter plot '''
+        pca = PCA(2)         
+        pcaComponents = pca.fit_transform(x)
+        pcaComponentsDataFrame = pandas.DataFrame(data = pcaComponents, columns = ['pc1', 'pc2'])
+        finalPCADataFrame = pandas.concat([pcaComponentsDataFrame, dataFrame[['topology']]], axis = 1)
+        for target, color in zip(targets,colors):
+            indicesToKeep = finalPCADataFrame['topology'] == target
+            a[row,col].scatter(finalPCADataFrame.loc[indicesToKeep, 'pc1'], finalPCADataFrame.loc[indicesToKeep, 'pc2'], c = color, s = 50)
+        a[row,col].set_xlabel('Principal Component 1', fontsize = 6)
+        a[row,col].set_ylabel('Principal Component 2', fontsize = 6)
+        a[row,col].set_title('PCA')
+        a[row,col].legend(targets)
+        row = row + 1
+        
+        ''' KMeans scatter plot based on PCA components '''
         kmeans = KMeans(n_clusters= cluster)        
-        labels = kmeans.fit_predict(X)
+        labels = kmeans.fit_predict(pcaComponents)
         centroids = kmeans.cluster_centers_
-        classes = numpy.unique(labels)
-        colors = ["red","green","blue","orange"]
+        classes = numpy.unique(labels) 
+                
         for clazz in labels:         
-            filtered_label = X[labels == clazz]
-            a[index].scatter(filtered_label[:,0], filtered_label[:,1],color=colors[list(classes).index(clazz)])    
-            
-        a[index].scatter(centroids[:,0] , centroids[:,1] , s = 80, color = 'k')    
-        index = index + 1
+            filtered_label = pcaComponents[labels == clazz]
+            a[row,col].scatter(filtered_label[:,0], filtered_label[:,1],color=colors[list(classes).index(clazz)])
+        
+        a[row,col].scatter(centroids[:,0] , centroids[:,1] , s = 80, color = 'k')
+        a[row,col].set_title('kmeans based on PCA components')
+        a[row,col].legend(targets)
+        row = row + 1
+         
+        ''' MDS scatter plot '''
+        mds = MDS(n_components=2,metric=True,n_init=4,max_iter=300,verbose=0,eps=0.001,n_jobs=None,random_state=42,dissimilarity='euclidean')
+        mdsComponents = mds.fit_transform(x)   
+        mdsComponentsDataFrame = pandas.DataFrame(data = mdsComponents, columns = ['pc1', 'pc2'])
+        finalMDSDataFrame = pandas.concat([mdsComponentsDataFrame, dataFrame[['topology']]], axis = 1)
+        for target, color in zip(targets,colors):
+            indicesToKeep = finalMDSDataFrame['topology'] == target
+            a[row,col].scatter(finalMDSDataFrame.loc[indicesToKeep, 'pc1'], finalMDSDataFrame.loc[indicesToKeep, 'pc2'], c = color, s = 50)        
+        a[row,col].set_xlabel('Principal Component 1', fontsize = 6)
+        a[row,col].set_ylabel('Principal Component 2', fontsize = 6)
+        a[row,col].set_title('MDS')
+        a[row,col].legend(targets)
+        row = row + 1
+        
+        ''' KMeans scatter plot based on PCA components '''
+        kmeans = KMeans(n_clusters= cluster)        
+        labels = kmeans.fit_predict(mdsComponents)
+        centroids = kmeans.cluster_centers_
+        classes = numpy.unique(labels) 
+                
+        for clazz in labels:         
+            filtered_label = mdsComponents[labels == clazz]
+            a[row,col].scatter(filtered_label[:,0], filtered_label[:,1],color=colors[list(classes).index(clazz)])
+        
+        a[row,col].scatter(centroids[:,0] , centroids[:,1] , s = 80, color = 'k')
+        a[row,col].set_title('kmeans based on MDS components')
+        a[row,col].legend(targets) 
+        
+        row = 0
+        col = 1
         
     plt.show()
     
@@ -379,12 +434,14 @@ if __name__ == "__main__":
     printProgress(4,maxSteps) 
       
     print("Generating some distance matrices...")    
-    distanceMatrices = [{"title":"Clustering based on position specifi occurrences","matrix":[positionSpecificStatistics[i]["occurence-ratios"] for i in range(0,len(positionSpecificStatistics))]}] 
-    distanceMatrices.append({"title":"Clustering based on spearman correlation","matrix":getSpearmanDistanceMatrix(positionSpecificStatistics)})
-    printProgress(5,maxSteps)   
+   
+    df1 = {AMINO_ACIDS_ONE_LETTER_CODE[aaIndex]:[positionSpecificStatistics[i]["occurence-ratios"][aaIndex] for i in range(0,len(positionSpecificStatistics))] for aaIndex in range(0,len(AMINO_ACIDS_ONE_LETTER_CODE))}
+    df1["topology"] = [positionSpecificStatistics[i]["topology"] for i in range(0,len(positionSpecificStatistics))]
+    printProgress(5,maxSteps)
+    dataFrames = [pandas.DataFrame(df1),getSpearmanDistanceMatrix(positionSpecificStatistics)]
     
     print("Clustering...")    
-    cluster(distanceMatrices)
+    cluster(dataFrames)
     printProgress(6,maxSteps) 
     
     print("Generating heatmap...")  
