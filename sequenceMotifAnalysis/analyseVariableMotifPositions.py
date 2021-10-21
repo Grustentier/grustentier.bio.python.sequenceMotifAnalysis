@@ -44,22 +44,25 @@ import numpy
 import pandas
 import seaborn
 import argparse
+import xml.dom.minidom
+import matplotlib.pyplot as plt
 from cv2 import data
 from scipy import stats
-import matplotlib.pyplot as plt 
 from sklearn.manifold import MDS
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from matplotlib.colors import LinearSegmentedColormap
 
 parser = argparse.ArgumentParser(description='Code for analysis of variable sequence motif positions  for different topologies.')
-parser.add_argument('--fasta_input_dir', default='testdata'+os.sep+'fasta'+os.sep+'rhodopsins', help='Path to the input dir including fasta files.')
-parser.add_argument('--tmhmm_input_dir', default='testdata'+os.sep+'tmhmm'+os.sep+'rhodopsins', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
+parser.add_argument('--fasta_input_dir', default='testdata'+os.sep+'fasta'+os.sep+'DUF', help='Path to the input dir including fasta files.')
+parser.add_argument('--tmhmm_input_dir', default='testdata'+os.sep+'tmhmm'+os.sep+'DUF', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
 #parser.add_argument('--export_dir', default='', type=str, help='The export/output directory for exporting heatmap')
 parser.add_argument('--max_variable_positions', default=9, type=int, help='The export/output directory')
-parser.add_argument('--sort_by', default=None, type=str, help='Sorting amin acid presentation by properties like: alphabetical or hydrophob.')
+parser.add_argument('--sort_by', default=None, type=str, help='Selection: alphabetical, hydrophob or None; Sorting amino acid presentation by properties.')
 parser.add_argument('--regex', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
 #parser.add_argument('--regex', default='GG4,SG4,AA3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
+parser.add_argument('--amino_acid_abundance', default=None, type=str, help='Selection: pdbtm, fasta or None; pdbtm: amino acid abundance from currently solved transmembrane proteins from pdbtm: 6420 (alpha: 5899 , beta: 473, version: 2021-10-08, from Tusnady (http://pdbtm.enzim.hu/)); fasta: amino acid abundance from current fasta dataset; None: amino acid abundance from on https://en.wikipedia.org/wiki/Amino_acid;')
+
  
 arguments = parser.parse_args() 
 
@@ -386,15 +389,71 @@ def cluster(dataFrames,cluster = 3):
         
     plt.show()
     
-def getAminoAcidOccurrencesinNature(fastaData):
-    occurrences = [0 for _ in AMINO_ACIDS_ONE_LETTER_CODE]
-    
+def getAminoAcidOccurrencesinNatureFromFasta(fastaData):
+    print("... from current fastaData") 
+    occ = [0 for _ in AMINO_ACIDS_ONE_LETTER_CODE]
     for data in fastaData: 
         for letter in data["sequence"]: 
             if str(letter).upper() in AMINO_ACIDS_ONE_LETTER_CODE: 
+                occ[AMINO_ACIDS_ONE_LETTER_CODE.index(str(letter).upper())]+=1
+    return occ
+
+def getAminoAcidOccurrencesinNatureFromWiki(): 
+    print('... based from on https://en.wikipedia.org/wiki/Amino_acid')
+    wiki = {}
+    wiki["W"] = 0.0125
+    wiki["C"] = 0.0138
+    wiki["H"] = 0.0226
+    wiki["M"] = 0.0232
+    wiki["Y"] = 0.0291
+    wiki["F"] = 0.0387
+    wiki["Q"] = 0.039
+    wiki["N"] = 0.0393
+    wiki["P"] = 0.0502
+    wiki["K"] = 0.0519
+    wiki["D"] = 0.0549
+    wiki["I"] = 0.0549
+    wiki["T"] = 0.0553
+    wiki["R"] = 0.0578
+    wiki["E"] = 0.0632
+    wiki["V"] = 0.0703
+    wiki["G"] = 0.0125
+    wiki["S"] = 0.0714
+    wiki["A"] = 0.0876
+    wiki["L"] = 0.0968
+    
+    return [wiki[aa] for aa in AMINO_ACIDS_ONE_LETTER_CODE]
+
+def getAminoAcidOccurrencesinNatureFromTusnady():  
+    print("... from Tusnady (http://pdbtm.enzim.hu/)")
+    try:       
+        occurrences = [0 for _ in AMINO_ACIDS_ONE_LETTER_CODE]
+        doc = xml.dom.minidom.parse('.'+os.sep+"inputdata"+os.sep+"pdbtmalpha.xml")
+        sequences2One = ""
+        
+        for seq in doc.getElementsByTagName('SEQ'):
+            unstripped = seq.firstChild.nodeValue
+            stripped = re.sub('[^a-zA-Z]',"",unstripped)
+            sequences2One+=stripped
+            
+        for letter in sequences2One: 
+            if str(letter).upper() in AMINO_ACIDS_ONE_LETTER_CODE: 
                 occurrences[AMINO_ACIDS_ONE_LETTER_CODE.index(str(letter).upper())]+=1
                 
-    return occurrences        
+        for i in range(0,len(occurrences)):
+            occurrences[i] = occurrences[i] / len(sequences2One)                
+                
+        return occurrences
+    except:
+        return getAminoAcidOccurrencesinNatureFromWiki()    
+    
+def getAminoAcidOccurrencesinNature(fastaData): 
+    if str(arguments.amino_acid_abundance).lower() == "fasta":        
+        return getAminoAcidOccurrencesinNatureFromFasta(fastaData)
+    elif str(arguments.amino_acid_abundance).lower() == "pdbtm":        
+        return getAminoAcidOccurrencesinNatureFromTusnady() 
+    else:
+        return getAminoAcidOccurrencesinNatureFromWiki()
 
 if __name__ == "__main__":  
     fastaFilePaths = collectFilePaths(arguments.fasta_input_dir)
@@ -426,7 +485,7 @@ if __name__ == "__main__":
     possibleMotifs = getPossibleMotifs(fastaData,tmhmmData)
     printProgress(3,maxSteps)   
     
-    print("Determining amino acid occurences in nature")
+    print("Determining amino acid occurences in nature or fall back")
     AMINO_ACID_OCCURRENCES = getAminoAcidOccurrencesinNature(fastaData)
     
     print("Generating some statistics...")
