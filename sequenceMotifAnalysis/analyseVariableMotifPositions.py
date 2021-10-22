@@ -54,13 +54,11 @@ from sklearn.decomposition import PCA
 from matplotlib.colors import LinearSegmentedColormap
 
 parser = argparse.ArgumentParser(description='Code for analysis of variable sequence motif positions  for different topologies.')
-parser.add_argument('--fasta_input_dir', default='testdata'+os.sep+'fasta'+os.sep+'DUF', help='Path to the input dir including fasta files.')
-parser.add_argument('--tmhmm_input_dir', default='testdata'+os.sep+'tmhmm'+os.sep+'DUF', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
-#parser.add_argument('--export_dir', default='', type=str, help='The export/output directory for exporting heatmap')
-parser.add_argument('--max_variable_positions', default=9, type=int, help='The export/output directory')
+parser.add_argument('--fasta_input_dir', default='testdata'+os.sep+'fasta'+os.sep+'rhodopsins', help='Path to the input dir including fasta files.')
+parser.add_argument('--tmhmm_input_dir', default='testdata'+os.sep+'tmhmm'+os.sep+'rhodopsins', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
 parser.add_argument('--sort_by', default=None, type=str, help='Selection: alphabetical, hydrophob or None; Sorting amino acid presentation by properties.')
-parser.add_argument('--regex', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
-#parser.add_argument('--regex', default='GG4,SG4,AA3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
+#parser.add_argument('--regex', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
+parser.add_argument('--regexes', default='GG4,SG4,AA3,LL8', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
 parser.add_argument('--amino_acid_abundance', default=None, type=str, help='Selection: pdbtm, fasta or None; pdbtm: amino acid abundance from currently solved transmembrane proteins from pdbtm: 6420 (alpha: 5899 , beta: 473, version: 2021-10-08, from Tusnady (http://pdbtm.enzim.hu/)); fasta: amino acid abundance from current fasta dataset; None: amino acid abundance from on https://en.wikipedia.org/wiki/Amino_acid;')
 
  
@@ -171,7 +169,7 @@ def getTopology(start,end,tmhmmData):
     
 def getPossibleMotifs(fastaData,tmhmmData):
     possibleMotifs = {"tm":{},"ntm":{},"trans":{}}
-    
+    minVarPos, maxVarPos = getMinMaxVarPos()
     for data in fastaData: 
         sequence = data["sequence"] 
         fasta_id = data["id"]
@@ -179,11 +177,11 @@ def getPossibleMotifs(fastaData,tmhmmData):
         if current_tmhmmData is None:print("No tmhmm data for to fasta id:",fasta_id)  
         
         for i in range(0,len(sequence)):
-            for j in range(3,arguments.max_variable_positions+1):
+            for j in range(minVarPos+1,maxVarPos+2):
                 if (i + j) >= len(sequence):continue
-                regEx = sequence[i]+sequence[i+j]+str(j)                 
-                if regEx not in REGEXES: continue                
-                motifSeq = sequence[i:i+j+1]                                
+                regEx = sequence[i]+sequence[i+j]+str(j)  
+                if regEx not in REGEXES: continue    
+                motifSeq = sequence[i:i+j+1]         
                 if len(motifSeq)>3:                         
                     topology2Assign = getTopology(i,i+j,current_tmhmmData)
                     if topology2Assign not in possibleMotifs.keys():possibleMotifs[topology2Assign]={}
@@ -298,7 +296,12 @@ def getPositionSpecificStatistics(possibleMotifs):
             
     return positionSpecificStatistics
 
-def getSpearmanDistanceMatrix(positionSpecificStatistics):
+def getDataFrameFromOccurrences(positionSpecificStatistics):
+    data = {AMINO_ACIDS_ONE_LETTER_CODE[aaIndex]:[positionSpecificStatistics[i]["occurence-ratios"][aaIndex] for i in range(0,len(positionSpecificStatistics))] for aaIndex in range(0,len(AMINO_ACIDS_ONE_LETTER_CODE))}
+    data["topology"] = [positionSpecificStatistics[i]["topology"] for i in range(0,len(positionSpecificStatistics))]
+    return pandas.DataFrame(data)
+
+def getDataFrameFromSpearman(positionSpecificStatistics):
     data = {}
     
     for i in range(0,len(positionSpecificStatistics)):
@@ -311,6 +314,7 @@ def getSpearmanDistanceMatrix(positionSpecificStatistics):
         
     data["topology"] = [positionSpecificStatistics[i]["topology"] for i in range(0,len(positionSpecificStatistics))]
     return pandas.DataFrame(data)
+    
 
 def cluster(dataFrames,cluster = 3):
     fig, a = plt.subplots(nrows=4,ncols=len(dataFrames))
@@ -323,10 +327,11 @@ def cluster(dataFrames,cluster = 3):
     colors = ['r', 'g', 'b', 'c', 'm']
         
     for dataFrame in dataFrames: 
+        if dataFrame.empty is True:continue
+        
         features = dataFrame.columns[0:-1]        
         x = dataFrame.loc[:, features].values
         #y = dataFrame.loc[:,['topology']].values
-        
         ''' PCA scatter plot '''
         pca = PCA(2)         
         pcaComponents = pca.fit_transform(x)
@@ -454,19 +459,30 @@ def getAminoAcidOccurrencesinNature(fastaData):
         return getAminoAcidOccurrencesinNatureFromTusnady() 
     else:
         return getAminoAcidOccurrencesinNatureFromWiki()
+    
+def getMinMaxVarPos():
+    minVarPos = 10000000000
+    maxVarPos = 0
+    
+    for regEx in REGEXES:
+        varPos = int(regEx[2:])-1
+        if varPos < minVarPos: minVarPos = varPos  
+            
+        if varPos > maxVarPos: maxVarPos = varPos 
+    return minVarPos,maxVarPos       
 
 if __name__ == "__main__":  
     fastaFilePaths = collectFilePaths(arguments.fasta_input_dir)
     assert len(fastaFilePaths)>0,"No fasta files have been found!!!"
     tmhmmFilePaths = collectFilePaths(arguments.tmhmm_input_dir)
     assert len(tmhmmFilePaths)>0,"No tmhmm files have been found!!!"
-    assert len(arguments.regex)>0,"No regex found have been found!!!"
+    assert len(arguments.regexes)>0,"No regex found have been found!!!"
     
     REGEXES = []
-    if str(arguments.regex).find(",") != -1:
-        REGEXES = str(arguments.regex).upper().strip(" ").split(",")
+    if str(arguments.regexes).find(",") != -1:
+        REGEXES = str(arguments.regexes).upper().strip(" ").split(",")
     else:
-        REGEXES.append(str(arguments.regex).upper().strip(" "))
+        REGEXES.append(str(arguments.regexes).upper().strip(" "))        
         
     AMINO_ACIDS_ONE_LETTER_CODE = getAminoAcidLetters()
      
@@ -492,12 +508,9 @@ if __name__ == "__main__":
     positionSpecificStatistics = getPositionSpecificStatistics(possibleMotifs) 
     printProgress(4,maxSteps) 
       
-    print("Generating some distance matrices...")    
-   
-    df1 = {AMINO_ACIDS_ONE_LETTER_CODE[aaIndex]:[positionSpecificStatistics[i]["occurence-ratios"][aaIndex] for i in range(0,len(positionSpecificStatistics))] for aaIndex in range(0,len(AMINO_ACIDS_ONE_LETTER_CODE))}
-    df1["topology"] = [positionSpecificStatistics[i]["topology"] for i in range(0,len(positionSpecificStatistics))]
+    print("Generating some distance matrices...") 
     printProgress(5,maxSteps)
-    dataFrames = [pandas.DataFrame(df1),getSpearmanDistanceMatrix(positionSpecificStatistics)]
+    dataFrames = [getDataFrameFromOccurrences(positionSpecificStatistics),getDataFrameFromSpearman(positionSpecificStatistics)]
     
     print("Clustering...")    
     cluster(dataFrames)
