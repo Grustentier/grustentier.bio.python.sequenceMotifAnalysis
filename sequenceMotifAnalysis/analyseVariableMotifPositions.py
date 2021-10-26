@@ -56,16 +56,16 @@ from sklearn.decomposition import PCA
 from matplotlib.colors import LinearSegmentedColormap
 
 parser = argparse.ArgumentParser(description='Code for analysis of variable sequence motif positions  for different topologies.')
-parser.add_argument('--fasta_input_dir', default='testdata'+os.sep+'fasta'+os.sep+'rhodopsins', help='Path to the input dir including fasta files.')
-parser.add_argument('--tmhmm_input_dir', default='testdata'+os.sep+'tmhmm'+os.sep+'rhodopsins', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
-parser.add_argument('--sort_by', default=None, type=str, help='Selection: alphabetical, hydrophob or None; Sorting amino acid presentation by properties.')
+parser.add_argument('--fasta_input_dir', default='testdata'+os.sep+'fasta'+os.sep+'DUF', help='Path to the input dir including fasta files.')
+parser.add_argument('--tmhmm_input_dir', default='testdata'+os.sep+'tmhmm'+os.sep+'DUF', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
 '''Gerstein pattern (regExes) '''
 #parser.add_argument('--regexes', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
-''' Other regExes after running analyseConsecutiveMotifs.py ''' 
+''' Other regExes maybe coming from console after running analyseConsecutiveMotifs.py to specify/predict the structure topology of given motifs ''' 
 parser.add_argument('--regexes', default='WP5, LL7, YL3, DF7, LL5, YP8, DA3, KF3, TL3, LL4, LL6, WL7, LL3, DK4, DP5, WY3, PW3, TL4, YA7, RP9, LA4, WL6, KG4, KL7, WT4, PL6, PL3, DV6, RD3, WT3, IL5, PL8, YT7, YL9, GL3, DG8, DP6, AF4, FL4, GF4, GA3, YL6, LF8, DM3, IG3, WF5, MG4, LA3, TL7, LY4, RT8, KL8, YT6, TL9, MT3, GA4, LK5, LP3, DT4, DG7, DL8, AL8, DT5, YK8, GL4, LE4, LV7, WP4, WL8, DL7, RT7', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
 parser.add_argument('--amino_acid_abundance', default=None, type=str, help='Selection: pdbtm, fasta or None; pdbtm: amino acid abundance from currently solved transmembrane proteins from pdbtm: 6420 (alpha: 5899 , beta: 473, version: 2021-10-08, from Tusnady (http://pdbtm.enzim.hu/)); fasta: amino acid abundance from current fasta dataset; None: amino acid abundance from on https://en.wikipedia.org/wiki/Amino_acid;')
-
- 
+parser.add_argument('--display_heatmap', default=False, type=str, help='True or 1 for displaying heatmap representing amino acid occurrences at variable position of motifs defined at --regexes.')
+parser.add_argument('--display_clustermap', default=True, type=str, help='True or 1 for displaying clustermaps representing clustered variable positions of motifs defined at --regexes.')
+parser.add_argument('--sort_by', default="hydrophob", type=str, help='Selection: alphabetical, hydrophob or None; Sorting amino acid presentation by properties.')
 arguments = parser.parse_args() 
 
 AMINO_ACIDS_ONE_LETTER_CODE_ALPHABETICAL = ["A","C","D","E","F","G","H","I","K","L","M","N","P","Q","R","S","T","V","W","Y"]
@@ -78,17 +78,17 @@ def cleanString(string,replacement='-'):
     return re.sub(replacement+'+', replacement, a)
 
 def cluster(dataFrames,cluster = 3):
-    fig, a = plt.subplots(nrows=4,ncols=len(dataFrames))
-    fig.subplots_adjust(wspace=0.2,hspace=0.4)
-    seaborn.set(font_scale=0.5)     
-    col = 0
-    row = 0
-    
     targets = ['tm', 'ntm', 'trans']
     colors = ['#cc4c48', '#4ab3c9', '#8cb555', 'c', 'm']
         
-    for index in range(0,len(dataFrames)):         
-        dataFrame = dataFrames[index]
+    for index in range(0,len(dataFrames)):   
+        row = 0  
+        fig, a = plt.subplots(nrows=4,ncols=1)
+        fig.subplots_adjust(wspace=0.2,hspace=0.4)
+        seaborn.set(font_scale=0.5)
+        fig.canvas.set_window_title(dataFrames[index]["title"])   
+       
+        dataFrame = dataFrames[index]["dataFrame"]
         if dataFrame.empty is True:continue
         
         features = dataFrame.columns[0:-1]        
@@ -101,11 +101,11 @@ def cluster(dataFrames,cluster = 3):
         finalPCADataFrame = pandas.concat([pcaComponentsDataFrame, dataFrame[['topology']]], axis = 1)
         for target, color in zip(targets,colors):
             indicesToKeep = finalPCADataFrame['topology'] == target
-            a[row,col].scatter(finalPCADataFrame.loc[indicesToKeep, 'pc1'], finalPCADataFrame.loc[indicesToKeep, 'pc2'], c = color, s = 50)
-        a[row,col].set_xlabel('Principal Component 1', fontsize = 6)
-        a[row,col].set_ylabel('Principal Component 2', fontsize = 6)
-        a[row,col].set_title('PCA')
-        a[row,col].legend(targets)
+            a[row].scatter(finalPCADataFrame.loc[indicesToKeep, 'pc1'], finalPCADataFrame.loc[indicesToKeep, 'pc2'], c = color, s = 50)
+        a[row].set_xlabel('Principal Component 1', fontsize = 6)
+        a[row].set_ylabel('Principal Component 2', fontsize = 6)
+        a[row].set_title('PCA')
+        a[row].legend(targets)
         row = row + 1
         
         ''' KMeans scatter plot based on PCA components '''
@@ -116,11 +116,11 @@ def cluster(dataFrames,cluster = 3):
                 
         for clazz in labels:         
             filtered_label = pcaComponents[labels == clazz]
-            a[row,col].scatter(filtered_label[:,0], filtered_label[:,1],color=colors[list(classes).index(clazz)])
+            a[row].scatter(filtered_label[:,0], filtered_label[:,1],color=colors[list(classes).index(clazz)])
         
-        a[row,col].scatter(centroids[:,0] , centroids[:,1] , s = 80, color = 'k')
-        a[row,col].set_title('kmeans based on PCA components')
-        a[row,col].legend(targets)
+        a[row].scatter(centroids[:,0] , centroids[:,1] , s = 80, color = 'k')
+        a[row].set_title('kmeans based on PCA components')
+        a[row].legend(targets)
         row = row + 1
          
         ''' MDS scatter plot '''
@@ -130,11 +130,11 @@ def cluster(dataFrames,cluster = 3):
         finalMDSDataFrame = pandas.concat([mdsComponentsDataFrame, dataFrame[['topology']]], axis = 1)
         for target, color in zip(targets,colors):
             indicesToKeep = finalMDSDataFrame['topology'] == target
-            a[row,col].scatter(finalMDSDataFrame.loc[indicesToKeep, 'pc1'], finalMDSDataFrame.loc[indicesToKeep, 'pc2'], c = color, s = 50)        
-        a[row,col].set_xlabel('Principal Component 1', fontsize = 6)
-        a[row,col].set_ylabel('Principal Component 2', fontsize = 6)
-        a[row,col].set_title('MDS')
-        a[row,col].legend(targets)
+            a[row].scatter(finalMDSDataFrame.loc[indicesToKeep, 'pc1'], finalMDSDataFrame.loc[indicesToKeep, 'pc2'], c = color, s = 50)        
+        a[row].set_xlabel('Principal Component 1', fontsize = 6)
+        a[row].set_ylabel('Principal Component 2', fontsize = 6)
+        a[row].set_title('MDS')
+        a[row].legend(targets)
         row = row + 1
         
         ''' KMeans scatter plot based on PCA components '''
@@ -145,14 +145,11 @@ def cluster(dataFrames,cluster = 3):
                 
         for clazz in labels:         
             filtered_label = mdsComponents[labels == clazz]
-            a[row,col].scatter(filtered_label[:,0], filtered_label[:,1],color=colors[list(classes).index(clazz)])
+            a[row].scatter(filtered_label[:,0], filtered_label[:,1],color=colors[list(classes).index(clazz)])
         
-        a[row,col].scatter(centroids[:,0] , centroids[:,1] , s = 80, color = 'k')
-        a[row,col].set_title('kmeans based on MDS components')
-        a[row,col].legend(targets) 
-        
-        row = 0
-        col = 1
+        a[row].scatter(centroids[:,0] , centroids[:,1] , s = 80, color = 'k')
+        a[row].set_title('kmeans based on MDS components')
+        a[row].legend(targets) 
         
         printProgress(index,len(dataFrames)-1,"Creating cluster plots...")  
         
@@ -442,7 +439,7 @@ def getDataFrameFromSpearman(positionSpecificStatistics):
     return pandas.DataFrame(data)    
     
 def getAminoAcidOccurrencesinNatureFromFasta(fastaData):
-    print("... from current fastaData") 
+    print("Determining amino acid occurrences in nature from current fastaData") 
     occ = [0 for _ in AMINO_ACIDS_ONE_LETTER_CODE]
 
     for index in range(0,len(fastaData)):
@@ -554,7 +551,10 @@ def determineWinners(possibleMotifs,positionSpecificStatistics):
     return motifWinners
     
 def printProgress(steps,maximum,name="todo", bar_length = 20, width = 20):  
-    percent = float(steps) / maximum
+    if maximum == 0:
+        percent = 1.0
+    else:
+        percent = float(steps) / maximum
     arrow = '-' * int(round(percent*bar_length) - 1) + '>'
     spaces = ' ' * (bar_length - len(arrow))
     sys.stdout.write("\r{0: <{1}} : [{2}]{3}%".format(\
@@ -597,17 +597,19 @@ if __name__ == "__main__":
     ''' Determining topology winners ''' 
     motifWinners = determineWinners(possibleMotifs,positionSpecificStatistics)
     
-    ''' Exporting topology winners '''  
+    ''' Exporting topology winners '''
     exportWinners(motifWinners)
     
-    ''' Generating panda.DataFrames from position specific statistics '''      
-    dataFrames = [getDataFrameFromOccurrences(positionSpecificStatistics),getDataFrameFromSpearman(positionSpecificStatistics)]
+    if arguments.display_heatmap is True:
+        ''' Generating dataFrame for heatmap''' 
+        dataFrames = getHeatmapDataFrames(possibleMotifs)
+        
+        ''' Creating heatmap '''   
+        createHeatMaps(dataFrames)
     
-    ''' Clustering data and presenting within scatter plots '''
-    cluster(dataFrames)
-    
-    ''' Generating dataFrame for heatmap''' 
-    dataFrames = getHeatmapDataFrames(possibleMotifs)
-    
-    ''' Creating heatmap '''   
-    createHeatMaps(dataFrames)
+    if arguments.display_clustermap is True:
+        ''' Generating panda.DataFrames from position specific statistics '''      
+        dataFrames = [{"title":"Clustering based on raw data (position specific amino acid occurrences)","dataFrame":getDataFrameFromOccurrences(positionSpecificStatistics)},{"title":"Clustering based on spearman rank correlation","dataFrame":getDataFrameFromSpearman(positionSpecificStatistics)}]
+        
+        ''' Clustering data and presenting within scatter plots '''
+        cluster(dataFrames)
