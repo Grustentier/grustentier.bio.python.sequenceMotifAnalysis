@@ -87,7 +87,8 @@ def cluster(dataFrames,cluster = 3):
     targets = ['tm', 'ntm', 'trans']
     colors = ['#cc4c48', '#4ab3c9', '#8cb555', 'c', 'm']
         
-    for dataFrame in dataFrames: 
+    for index in range(0,len(dataFrames)):         
+        dataFrame = dataFrames[index]
         if dataFrame.empty is True:continue
         
         features = dataFrame.columns[0:-1]        
@@ -153,6 +154,8 @@ def cluster(dataFrames,cluster = 3):
         row = 0
         col = 1
         
+        printProgress(index,len(dataFrames)-1,"Creating cluster plots...")  
+        
     plt.show()
 
 def collectFilePaths(directory):
@@ -171,7 +174,7 @@ def collectFastaData(fastaFilePaths):
         if data is not None:
             fastaData.extend(data)  
                   
-        printProgress(index,len(fastaFilePaths)-1,"Parsing and collecing fasta files...")
+        printProgress(index,len(fastaFilePaths)-1,"Parsing and collecting fasta files...")
             
     return fastaData
 
@@ -184,7 +187,7 @@ def collectTmhmmData(tmhmmFilePaths):
         if data is not None:
             tmhmmData.extend(data)
             
-        printProgress(index,len(tmhmmFilePaths)-1,"Parsing and collecing tmhmm files...")
+        printProgress(index,len(tmhmmFilePaths)-1,"Parsing and collecting tmhmm files...")
             
     return tmhmmData 
 
@@ -192,13 +195,15 @@ def createHeatMaps(dataFrames):
     fig, a = plt.subplots(nrows=len(dataFrames.keys()))
     fig.subplots_adjust(wspace=0.01)
     seaborn.set(font_scale=0.5) 
-    index = 0
     
+    index = 0    
     for topology in dataFrames.keys(): 
         if len(dataFrames[topology]["dataFrame"]) > 0:
             custom_color_map = LinearSegmentedColormap.from_list(name='custom_navy',colors=[(0/255, 0/255, 255/255),(255/255, 0/255, 0/255)])
             heatmap = seaborn.heatmap(dataFrames[topology]["dataFrame"],ax=a[index], cmap=custom_color_map, cbar=True, annot=False, annot_kws={"size": 1},xticklabels=AMINO_ACIDS_ONE_LETTER_CODE,yticklabels=dataFrames[topology]["yLabels"])
-            heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0, fontsize = 6)  
+            heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0, fontsize = 6)
+            
+        printProgress(index,len(dataFrames.keys())-1,"Creating heatmap...") 
         index = index + 1     
     
     plt.show()
@@ -213,6 +218,7 @@ def exportWinners(motifWinners):
     tree=ET.parse(motifTopologiesFilePath)
     root=tree.getroot()
      
+    index = 0
     for regEx in motifWinners.keys():
         winnerTopology = max(motifWinners[regEx].items(), key = lambda k : k[1])[0] 
          
@@ -222,7 +228,10 @@ def exportWinners(motifWinners):
                  
         motifElement.set("regEx", regEx)
         motifElement.set("topology", winnerTopology)   
-        root.append(motifElement)              
+        root.append(motifElement)       
+        
+        printProgress(index,len(motifWinners.keys())-1,"Exporting topology winners...") 
+        index = index + 1       
         
     with open(motifTopologiesFilePath, "wb") as f:
         f.write(ET.tostring(root))
@@ -338,6 +347,7 @@ def getPossibleMotifs(fastaData,tmhmmData):
 def getHeatmapDataFrames(possibleMotifs):
     dataFrames = {}
     
+    index = 0
     for topology in possibleMotifs.keys():
         dataFrames[topology]={"yLabels":[],"dataFrame":[]}  
         for regEx in possibleMotifs[topology]: 
@@ -369,11 +379,15 @@ def getHeatmapDataFrames(possibleMotifs):
                         dataFrameContent.append(quotient)
                     dataFrames[topology]["dataFrame"].append(dataFrameContent)
                     
+        printProgress(index,len(possibleMotifs.keys())-1,"Collecting heatmap data...") 
+        index = index + 1
+                    
     return dataFrames
 
 def getPositionSpecificStatistics(possibleMotifs):
     positionSpecificStatistics= [] 
     
+    index = 0
     for topology in possibleMotifs.keys():         
         for regEx in possibleMotifs[topology]:             
             regExsStatistic = []             
@@ -399,7 +413,10 @@ def getPositionSpecificStatistics(possibleMotifs):
                     if quotient != 0.0:quotient = math.log(quotient)
                     currentRegExsStatistic["occurence-ratios"][pos] = quotient
              
-            positionSpecificStatistics.extend(regExsStatistic)     
+            positionSpecificStatistics.extend(regExsStatistic)  
+            
+        printProgress(index,len(possibleMotifs.keys())-1,"Determining position specific statistics...")  
+        index = index + 1 
             
     return positionSpecificStatistics
 
@@ -465,7 +482,7 @@ def getAminoAcidOccurrencesinNatureFromWiki():
     return [wiki[aa] for aa in AMINO_ACIDS_ONE_LETTER_CODE]
 
 def getAminoAcidOccurrencesinNatureFromTusnady():  
-    print("... from Tusnady (http://pdbtm.enzim.hu/)")
+    print("Determining amino acid occurrences in nature based on Tusnady (http://pdbtm.enzim.hu/)")
     try:       
         occurrences = [0 for _ in AMINO_ACIDS_ONE_LETTER_CODE]
         doc = xml.dom.minidom.parse('.'+os.sep+"inputdata"+os.sep+"pdbtmalpha.xml")
@@ -515,6 +532,8 @@ def getAminoAcidOccurrences2MotifPosition(regEx,position,positionSpecificStatist
 
 def determineWinners(possibleMotifs,positionSpecificStatistics):
     motifWinners = {}
+    
+    index = 0
     for t in possibleMotifs.keys():
         for regEx in possibleMotifs[t].keys():
             if regEx not in motifWinners.keys():motifWinners[regEx] = {}
@@ -527,7 +546,10 @@ def determineWinners(possibleMotifs,positionSpecificStatistics):
                     if letterAtPos not in AMINO_ACIDS_ONE_LETTER_CODE:continue
                     oc = getAminoAcidOccurrences2MotifPosition(regEx,pos,positionSpecificStatistics)
                     assert len(oc) > 0, "wrong assingment"
-                    motifWinners[regEx][t]+=oc[AMINO_ACIDS_ONE_LETTER_CODE.index(letterAtPos)]                        
+                    motifWinners[regEx][t]+=oc[AMINO_ACIDS_ONE_LETTER_CODE.index(letterAtPos)]     
+                        
+        printProgress(index,len(possibleMotifs.keys())-1,"Determining topology winners...") 
+        index = index + 1                
                 
     return motifWinners
     
@@ -556,15 +578,36 @@ if __name__ == "__main__":
         REGEXES.append(str(arguments.regexes).upper().replace(" ",""))        
         
     AMINO_ACIDS_ONE_LETTER_CODE = getAminoAcidLetters() 
-
-    fastaData = collectFastaData(fastaFilePaths)    
-    tmhmmData = collectTmhmmData(tmhmmFilePaths) 
-    possibleMotifs = getPossibleMotifs(fastaData,tmhmmData)  
-    AMINO_ACID_OCCURRENCES = getAminoAcidOccurrencesinNature(fastaData) 
-    positionSpecificStatistics = getPositionSpecificStatistics(possibleMotifs)  
-    motifWinners = determineWinners(possibleMotifs,positionSpecificStatistics)  
-    exportWinners(motifWinners)      
+    
+    ''' Collecting fasta data '''
+    fastaData = collectFastaData(fastaFilePaths)
+    
+    ''' Collecting tmhmm data  '''    
+    tmhmmData = collectTmhmmData(tmhmmFilePaths)
+    
+    ''' Gathering motifs from sequences ''' 
+    possibleMotifs = getPossibleMotifs(fastaData,tmhmmData)
+    
+    ''' Determining amino acid occurrences in nature from different sources'''  
+    AMINO_ACID_OCCURRENCES = getAminoAcidOccurrencesinNature(fastaData)
+    
+    ''' Determining position specific statistics ''' 
+    positionSpecificStatistics = getPositionSpecificStatistics(possibleMotifs) 
+    
+    ''' Determining topology winners ''' 
+    motifWinners = determineWinners(possibleMotifs,positionSpecificStatistics)
+    
+    ''' Exporting topology winners '''  
+    exportWinners(motifWinners)
+    
+    ''' Generating panda.DataFrames from position specific statistics '''      
     dataFrames = [getDataFrameFromOccurrences(positionSpecificStatistics),getDataFrameFromSpearman(positionSpecificStatistics)]
-    cluster(dataFrames) 
-    dataFrames = getHeatmapDataFrames(possibleMotifs)   
+    
+    ''' Clustering data and presenting within scatter plots '''
+    cluster(dataFrames)
+    
+    ''' Generating dataFrame for heatmap''' 
+    dataFrames = getHeatmapDataFrames(possibleMotifs)
+    
+    ''' Creating heatmap '''   
     createHeatMaps(dataFrames)
