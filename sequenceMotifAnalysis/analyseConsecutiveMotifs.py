@@ -39,17 +39,19 @@ BioData Mining 6, 21 (2013). https://doi.org/10.1186/1756-0381-6-21
 
 import os
 import re
+import sys
 import argparse
-from cv2 import data
 import networkx as nx
 import matplotlib.pyplot as plt 
+import xml.etree.ElementTree as ET
+from cv2 import data
 
 parser = argparse.ArgumentParser(description='Code for analysis of variable sequence motif positions  for different topologies.')
 parser.add_argument('--fasta_input_dir', default='.'+os.sep+'testdata'+os.sep+'fasta'+os.sep+'rhodopsins', help='Path to the input dir including fasta files.')
 parser.add_argument('--tmhmm_input_dir', default='.'+os.sep+'testdata'+os.sep+'tmhmm'+os.sep+'rhodopsins', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.') 
 parser.add_argument('--min_variable_positions', default=3, type=int, help='The min number of min variable x- position of a given sequence motif XYn by n-1 variable postions like GG4 = GxxxG')
 parser.add_argument('--max_variable_positions', default=9, type=int, help='The max number of min variable x- position of a given sequence motif XYn by n-1 variable postions like GG4 = GxxxG')
-parser.add_argument('--max_nodes', default=30, type=int, help='The max number of graph nodes to visualize') 
+parser.add_argument('--max_nodes', default=100, type=int, help='The max number of graph nodes to visualize') 
 parser.add_argument('--topology', default="tm", type=str, help='The topology to analyse. (tm for transmembrane or ntm for none-transmembrane')
 parser.add_argument('--as_tree', default=False, type=str, help='True or 1 for displaying graph as tree.')
  
@@ -113,28 +115,26 @@ def getTmhmmData(filePath):
     return tmhmmData
 
 def collectFastaData(fastaFilePaths):
-    fastaData = []
-    
-    printProgress(0,len(fastaFilePaths))
+    fastaData = []   
+   
     for index in range(0,len(fastaFilePaths)): 
         fastaFilePath = fastaFilePaths[index]
         data = getFastaData(fastaFilePath)
         if data is not None:
             fastaData.extend(data)        
-        printProgress(index,len(fastaFilePaths))
+        printProgress(index,len(fastaFilePaths)-1,"Parsing and collecting fasta files...")
             
     return fastaData
 
 def collectTmhmmData(tmhmmFilePaths):
-    tmhmmData = []
-    
-    printProgress(0,len(tmhmmFilePaths))
+    tmhmmData = []    
+   
     for index in range(0,len(tmhmmFilePaths)): 
         tmhmmFilePath = tmhmmFilePaths[index]
         data = getTmhmmData(tmhmmFilePath)
         if data is not None:
             tmhmmData.extend(data)
-        printProgress(index,len(tmhmmFilePaths))
+        printProgress(index,len(tmhmmFilePaths)-1,"Parsing and collecting tmhmm files...")
             
     return tmhmmData 
 
@@ -147,9 +147,8 @@ def findCorrespondingFastaData(tmhmm_id,fastaData):
     return None
     
 def collectTopologySpecficSubSequences(fastaData,tmhmmData): 
-    subsequences = []
-    
-    printProgress(0,len(tmhmmData))
+    subsequences = [] 
+   
     for index in range(0,len(tmhmmData)):
         data_tmhmm = tmhmmData[index]
         tmhmm_id = data_tmhmm["id"]
@@ -169,25 +168,24 @@ def collectTopologySpecficSubSequences(fastaData,tmhmmData):
                 start_tmhmm = int(area["from"]) - 1
                 end_tmhmm = int(area["to"]) - 1 
                 subsequences.append(current_fastaData["sequence"][start_tmhmm:end_tmhmm])          
-        printProgress(index,len(tmhmmData))          
+        printProgress(index,len(tmhmmData)-1,"Gathering motifs from sequences...")          
                             
     return subsequences     
 
-lastProgressValue = None 
-def printProgress(steps,maximum):
-    output = ""
-    maxSteps2Console = 20
-    for _ in range(0,int((steps/maximum)*maxSteps2Console)):output +="."
-    value = int(round((steps/maximum)*100,0))
-    global lastProgressValue
-    if lastProgressValue != value:
-        print("["+output+"]", str(value)+"%")
-        lastProgressValue = value 
+def printProgress(steps,maximum,name="todo", bar_length = 20, width = 20):  
+    percent = float(steps) / maximum
+    arrow = '-' * int(round(percent*bar_length) - 1) + '>'
+    spaces = ' ' * (bar_length - len(arrow))
+    sys.stdout.write("\r{0: <{1}} : [{2}]{3}%".format(\
+                     name, width, arrow + spaces, int(round(percent*100))))
+    sys.stdout.flush()    
+    
+    if steps >= maximum:     
+        sys.stdout.write('\n\n')
 
 def createConsecutiveMotifsStatistics(topologySpecificSubSequences): 
     statistics = {}
-    
-    printProgress(0,len(topologySpecificSubSequences))
+
     for sequenceIndex in range(0,len(topologySpecificSubSequences)):
         sequence = topologySpecificSubSequences[sequenceIndex]        
         for i in range(0,len(sequence)):            
@@ -206,7 +204,7 @@ def createConsecutiveMotifsStatistics(topologySpecificSubSequences):
                         statistics[cmKey] = {"sequence":sequence,"regEx1":regEx1,"regEx2":regEx2,"motifSequence1":motifSeq1,"motifSequence2":motifSeq2,"occurrence":1}
                     else:
                         statistics[cmKey]["occurrence"] += 1                             
-        printProgress(sequenceIndex,len(topologySpecificSubSequences))
+        printProgress(sequenceIndex,len(topologySpecificSubSequences)-1,"Collecting consecutive Motifs...")
         
     return statistics
         
@@ -237,7 +235,21 @@ def getDiGraph(statistics):
         
     return graph 
 
+def getColorFromDatabase(regEx,motifTopologiesFilePath = '.'+os.sep+'inputdata'+os.sep+'motif-topologies.xml'):
+    colors={False:"gray",None:"gray","tm":"#cc4c48","ntm":"#4ab3c9","trans":"#8cb555"}    
+    if os.path.exists(motifTopologiesFilePath) is False:return colors[False]
+    
+    tree=ET.parse(motifTopologiesFilePath)
+    root=tree.getroot()
+
+    motifElement = root.find(".//*[@regEx='"+regEx+"']")
+    if motifElement is None:
+        return colors[None] 
+    
+    return colors[motifElement.get("topology")]
+
 def createGraph(statistics):
+    print("Creating graph...")
     statistics = sorted(statistics.items(), key=lambda x: x[1]["occurrence"], reverse=True)
     graph = getDiGraph(statistics)
     
@@ -248,16 +260,15 @@ def createGraph(statistics):
         
     labels = nx.get_edge_attributes(graph,'weight')
     nx.draw_networkx_edge_labels(graph,layout,edge_labels=labels)
-    
-    nodeColor = "black"
-    if str(arguments.topology).lower() == "tm":
-        nodeColor = "#cd4d48"
-    if str(arguments.topology).lower() == "ntm":
-        nodeColor = "#8cb555"
+    colorMap = [getColorFromDatabase(node) for node in graph.nodes()]
     
     cent = nx.centrality.betweenness_centrality(graph,weight=None,normalized=False,endpoints=True) 
-    nx.draw(graph,layout,width=1,linewidths=1,node_size=[v*500 for v in cent.values()],node_color=nodeColor, edge_color='silver',alpha=0.9,labels={node:node for node in graph.nodes()})
+    nx.draw(graph,layout,width=1,linewidths=1,node_size=[v*500 for v in cent.values()],node_color=colorMap, edge_color='silver',alpha=0.9,labels={node:node for node in graph.nodes()})
     plt.axis('off')    
+    
+    print("")
+    print("Copy the following regExes and assing this to --regexes parameter within the analyseVariableMotifPositions.py script for analyzing variable motif positions.")
+    print(str([node for node in graph.nodes()]).replace("'","").replace("[","").replace("]",""))
 
 if __name__ == "__main__":  
     fastaFilePaths = collectFilePaths(arguments.fasta_input_dir)
@@ -265,21 +276,12 @@ if __name__ == "__main__":
     tmhmmFilePaths = collectFilePaths(arguments.tmhmm_input_dir)
     assert len(tmhmmFilePaths)>0,"No tmhmm files have been found!!!"       
         
-    AMINO_ACIDS_ONE_LETTER_CODE = AMINO_ACIDS_ONE_LETTER_CODE_ALPHABETICAL
+    AMINO_ACIDS_ONE_LETTER_CODE = AMINO_ACIDS_ONE_LETTER_CODE_ALPHABETICAL    
     
-    print("Parsing and collecting fasta files...")
-    fastaData = collectFastaData(fastaFilePaths)     
-    
-    print("Parsing and collecting tmhmm files...")
-    tmhmmData = collectTmhmmData(tmhmmFilePaths)    
-    
-    print("Gathering motifs from sequences...")      
+    fastaData = collectFastaData(fastaFilePaths)  
+    tmhmmData = collectTmhmmData(tmhmmFilePaths) 
     topologySpecificSubSequences = collectTopologySpecficSubSequences(fastaData,tmhmmData)
-    
-    print("Collecting consecutive Motifs...")
-    statistics = createConsecutiveMotifsStatistics(topologySpecificSubSequences) 
-    
-    print("Creating graph...")    
+    statistics = createConsecutiveMotifsStatistics(topologySpecificSubSequences)  
     createGraph(statistics)  
     plt.show()    
     
