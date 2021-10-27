@@ -41,7 +41,6 @@ import os
 import re
 import sys
 import math
-import numpy
 import pandas
 import seaborn
 import argparse
@@ -51,7 +50,7 @@ import xml.etree.ElementTree as ET
 from cv2 import data
 from scipy import stats
 from sklearn.manifold import MDS
-from sklearn.cluster import KMeans
+#from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA 
 from matplotlib.colors import LinearSegmentedColormap
 
@@ -59,19 +58,19 @@ parser = argparse.ArgumentParser(description='Code for analysis of variable sequ
 parser.add_argument('--fasta_input_dir', default='testdata'+os.sep+'fasta'+os.sep+'DUF', help='Path to the input dir including fasta files.')
 parser.add_argument('--tmhmm_input_dir', default='testdata'+os.sep+'tmhmm'+os.sep+'DUF', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
 '''Gerstein pattern (regExes) '''
-#parser.add_argument('--regexes', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
+parser.add_argument('--regexes', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
 ''' Other regExes maybe coming from console after running analyseConsecutiveMotifs.py to specify/predict the structure topology of given motifs ''' 
-parser.add_argument('--regexes', default='WP5, LL7, YL3, DF7, LL5, YP8, DA3, KF3, TL3, LL4, LL6, WL7, LL3, DK4, DP5, WY3, PW3, TL4, YA7, RP9, LA4, WL6, KG4, KL7, WT4, PL6, PL3, DV6, RD3, WT3, IL5, PL8, YT7, YL9, GL3, DG8, DP6, AF4, FL4, GF4, GA3, YL6, LF8, DM3, IG3, WF5, MG4, LA3, TL7, LY4, RT8, KL8, YT6, TL9, MT3, GA4, LK5, LP3, DT4, DG7, DL8, AL8, DT5, YK8, GL4, LE4, LV7, WP4, WL8, DL7, RT7', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
+#parser.add_argument('--regexes', default='GG4,IL4,LL4', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
 parser.add_argument('--amino_acid_abundance', default=None, type=str, help='Selection: pdbtm, fasta or None; pdbtm: amino acid abundance from currently solved transmembrane proteins from pdbtm: 6420 (alpha: 5899 , beta: 473, version: 2021-10-08, from Tusnady (http://pdbtm.enzim.hu/)); fasta: amino acid abundance from current fasta dataset; None: amino acid abundance from on https://en.wikipedia.org/wiki/Amino_acid;')
-parser.add_argument('--display_heatmap', default=False, type=str, help='True or 1 for displaying heatmap representing amino acid occurrences at variable position of motifs defined at --regexes.')
+parser.add_argument('--display_heatmap', default=True, type=str, help='True or 1 for displaying heatmap representing amino acid occurrences at variable position of motifs defined at --regexes.')
 parser.add_argument('--display_clustermap', default=True, type=str, help='True or 1 for displaying clustermaps representing clustered variable positions of motifs defined at --regexes.')
-parser.add_argument('--sort_by', default="hydrophob", type=str, help='Selection: alphabetical, hydrophob or None; Sorting amino acid presentation by properties.')
+parser.add_argument('--sort_by', default=None, type=str, help='Selection: alphabetical, hydrophob or None; Sorting amino acid presentation by properties.')
 arguments = parser.parse_args() 
 
 AMINO_ACIDS_ONE_LETTER_CODE_ALPHABETICAL = ["A","C","D","E","F","G","H","I","K","L","M","N","P","Q","R","S","T","V","W","Y"]
 AMINO_ACIDS_ONE_LETTER_CODE_HYDROPHOB =    ["A","C","F","I","L","M","P","T","V","W","Y","D","E","G","H","K","N","Q","R","S"]
 AMINO_ACIDS_ONE_LETTER_CODE_SMALL =        ["A","C","D","G","N","P","V","S","T","E","F","H","I","K","L","M","Q","R","W","Y"]
-AMINO_ACIDS_ONE_LETTER_CODE_PLOAR =        ["C","D","E","H","K","N","Q","R","S","T","W","Y","A","F","G","I","L","M","P","V"]
+AMINO_ACIDS_ONE_LETTER_CODE_POLAR =        ["C","D","E","H","K","N","Q","R","S","T","W","Y","A","F","G","I","L","M","P","V"]
 
 def cleanString(string,replacement='-'):
     a =  re.sub('[^a-zA-Z0-9.?]',replacement,string) 
@@ -83,7 +82,7 @@ def cluster(dataFrames,cluster = 3):
         
     for index in range(0,len(dataFrames)):   
         row = 0  
-        fig, a = plt.subplots(nrows=4,ncols=1)
+        fig, a = plt.subplots(nrows=2,ncols=1)
         fig.subplots_adjust(wspace=0.2,hspace=0.4)
         seaborn.set(font_scale=0.5)
         fig.canvas.set_window_title(dataFrames[index]["title"])   
@@ -108,7 +107,7 @@ def cluster(dataFrames,cluster = 3):
         a[row].legend(targets)
         row = row + 1
         
-        ''' KMeans scatter plot based on PCA components '''
+        ''' KMeans scatter plot based on PCA components 
         kmeans = KMeans(n_clusters= cluster)        
         labels = kmeans.fit_predict(pcaComponents)
         centroids = kmeans.cluster_centers_
@@ -122,6 +121,8 @@ def cluster(dataFrames,cluster = 3):
         a[row].set_title('kmeans based on PCA components')
         a[row].legend(targets)
         row = row + 1
+        '''
+    
          
         ''' MDS scatter plot '''
         mds = MDS(n_components=2,metric=True,n_init=4,max_iter=300,verbose=0,eps=0.001,n_jobs=None,random_state=42,dissimilarity='euclidean')
@@ -137,7 +138,7 @@ def cluster(dataFrames,cluster = 3):
         a[row].legend(targets)
         row = row + 1
         
-        ''' KMeans scatter plot based on PCA components '''
+        ''' KMeans scatter plot based on PCA components 
         kmeans = KMeans(n_clusters= cluster)        
         labels = kmeans.fit_predict(mdsComponents)
         centroids = kmeans.cluster_centers_
@@ -150,6 +151,7 @@ def cluster(dataFrames,cluster = 3):
         a[row].scatter(centroids[:,0] , centroids[:,1] , s = 80, color = 'k')
         a[row].set_title('kmeans based on MDS components')
         a[row].legend(targets) 
+        '''
         
         printProgress(index,len(dataFrames)-1,"Creating cluster plots...")  
         
@@ -240,7 +242,7 @@ def getAminoAcidLetters():
     elif arguments.sort_by == "small":
         aminoAcidLetters = AMINO_ACIDS_ONE_LETTER_CODE_SMALL
     elif arguments.sort_by == "polar":
-        aminoAcidLetters = AMINO_ACIDS_ONE_LETTER_CODE_PLOAR
+        aminoAcidLetters = AMINO_ACIDS_ONE_LETTER_CODE_POLAR
     else:aminoAcidLetters = AMINO_ACIDS_ONE_LETTER_CODE_ALPHABETICAL        
     
     return aminoAcidLetters
@@ -330,7 +332,8 @@ def getPossibleMotifs(fastaData,tmhmmData):
                 if (i + j) >= len(sequence):continue
                 regEx = sequence[i]+sequence[i+j]+str(j)  
                 if regEx not in REGEXES: continue    
-                motifSeq = sequence[i:i+j+1]         
+                motifSeq = sequence[i:i+j+1]       
+                  
                 if len(motifSeq)>3:                         
                     topology2Assign = getTopology(i,i+j,current_tmhmmData)
                     if topology2Assign not in possibleMotifs.keys():possibleMotifs[topology2Assign]={}
@@ -371,7 +374,7 @@ def getHeatmapDataFrames(possibleMotifs):
                     dataFrameContent = []
                     for aminoAcid in AMINO_ACIDS_ONE_LETTER_CODE: 
                         #quotient = registrations[pos][aminoAcid] / len(possibleMotifs[topology][regEx])
-                        quotient = registrations[pos][aminoAcid] / AMINO_ACID_OCCURRENCES[pos]
+                        quotient = (registrations[pos][aminoAcid] / len(possibleMotifs[topology][regEx])) / AMINO_ACID_OCCURRENCES[aminoAcid]
                         if quotient != 0.0:quotient = math.log(quotient)
                         dataFrameContent.append(quotient)
                     dataFrames[topology]["dataFrame"].append(dataFrameContent)
@@ -398,22 +401,18 @@ def getPositionSpecificStatistics(possibleMotifs):
                     if varPosOfMotif[pos] in AMINO_ACIDS_ONE_LETTER_CODE:
                         indexInArray = AMINO_ACIDS_ONE_LETTER_CODE.index(varPosOfMotif[pos])
                         regExsStatistic[pos]["occurences"][indexInArray]+=1
-                        
-            for currentRegExsStatistic in regExsStatistic:
-                for pos in range(0, len(currentRegExsStatistic["occurence-ratios"])):                    
-                    '''
-                        Within the corresponding research article log(P(a|pos|topology)/P(a|nature))...
-                        Here a simpler information base approach. 
-                    '''                        
-                    #quotient = currentRegExsStatistic["occurences"][pos] / len(possibleMotifs[topology][regEx])
-                    quotient = currentRegExsStatistic["occurences"][pos] / AMINO_ACID_OCCURRENCES[pos]                    
-                    if quotient != 0.0:quotient = math.log(quotient)
-                    currentRegExsStatistic["occurence-ratios"][pos] = quotient
-             
             positionSpecificStatistics.extend(regExsStatistic)  
             
         printProgress(index,len(possibleMotifs.keys())-1,"Determining position specific statistics...")  
         index = index + 1 
+        
+    for i in range(0,len(positionSpecificStatistics)):
+        for ocPos in range(0,len(positionSpecificStatistics[i]["occurences"])):
+            quotient = 0.0                      
+            if AMINO_ACID_OCCURRENCES[ocPos] != 0.0:
+                quotient = (positionSpecificStatistics[i]["occurences"][ocPos]/len(possibleMotifs[positionSpecificStatistics[i]["topology"]][positionSpecificStatistics[i]["regEx"]])) / AMINO_ACID_OCCURRENCES[ocPos]                    
+            if quotient != 0.0:quotient = math.log2(quotient)
+            positionSpecificStatistics[i]["occurence-ratios"][ocPos] = quotient
             
     return positionSpecificStatistics
 
@@ -430,27 +429,47 @@ def getDataFrameFromSpearman(positionSpecificStatistics):
         for j in range(0,len(positionSpecificStatistics)):
             correlation,_ = stats.spearmanr(positionSpecificStatistics[i]["occurence-ratios"], positionSpecificStatistics[j]["occurence-ratios"])
             comatrix.append(correlation)   
-        dataKey = positionSpecificStatistics[i]["regEx"]+"-"+str(positionSpecificStatistics[i]["position"])
+        dataKey = positionSpecificStatistics[i]["regEx"]+"-"+str(positionSpecificStatistics[i]["position"])+"-"+positionSpecificStatistics[i]["topology"]
         data[dataKey] = comatrix   
         
         printProgress(i,len(positionSpecificStatistics)-1,"Calculating spearman matrix")
+        
+    data["topology"] = [positionSpecificStatistics[i]["topology"] for i in range(0,len(positionSpecificStatistics))]
+    return pandas.DataFrame(data) 
+
+def getDataFrameFromPearson(positionSpecificStatistics):
+    data = {}
+
+    for i in range(0,len(positionSpecificStatistics)):
+        comatrix = [] 
+        for j in range(0,len(positionSpecificStatistics)):
+            correlation,_ = stats.pearsonr(positionSpecificStatistics[i]["occurence-ratios"], positionSpecificStatistics[j]["occurence-ratios"])
+            comatrix.append(correlation)   
+        dataKey = positionSpecificStatistics[i]["regEx"]+"-"+str(positionSpecificStatistics[i]["position"])+"-"+positionSpecificStatistics[i]["topology"]
+        data[dataKey] = comatrix   
+        
+        printProgress(i,len(positionSpecificStatistics)-1,"Calculating pearson matrix")
         
     data["topology"] = [positionSpecificStatistics[i]["topology"] for i in range(0,len(positionSpecificStatistics))]
     return pandas.DataFrame(data)    
     
 def getAminoAcidOccurrencesinNatureFromFasta(fastaData):
     print("Determining amino acid occurrences in nature from current fastaData") 
-    occ = [0 for _ in AMINO_ACIDS_ONE_LETTER_CODE]
-
+    occurrences = [0 for _ in AMINO_ACIDS_ONE_LETTER_CODE]
+    
+    letterCount = 0
     for index in range(0,len(fastaData)):
         data = fastaData[index]
         for letter in data["sequence"]: 
+            letterCount+=1
             if str(letter).upper() in AMINO_ACIDS_ONE_LETTER_CODE: 
-                occ[AMINO_ACIDS_ONE_LETTER_CODE.index(str(letter).upper())]+=1
-        
+                occurrences[AMINO_ACIDS_ONE_LETTER_CODE.index(str(letter).upper())]+=1
         printProgress(index,len(fastaData)-1,"Determining amino acid occurrences in nature from fasta data")
+
+    for i in range(0,len(occurrences)):
+        occurrences[i]=occurrences[i]/letterCount        
         
-    return occ
+    return occurrences
 
 def getAminoAcidOccurrencesinNatureFromWiki(): 
     print('Determining amino acid occurrences in nature based on on https://en.wikipedia.org/wiki/Amino_acid')
@@ -520,10 +539,10 @@ def getMinMaxVarPos():
         if varPos > maxVarPos: maxVarPos = varPos 
     return minVarPos,maxVarPos    
 
-def getAminoAcidOccurrences2MotifPosition(regEx,position,positionSpecificStatistics):
+def getOccurrencesRatios(regEx,position,topology,positionSpecificStatistics):
     occurrences = []
     for stat in positionSpecificStatistics:
-        if stat["regEx"] == regEx and stat["position"] == position: 
+        if stat["regEx"] == regEx and stat["position"] == position and stat["topology"] == topology: 
             return stat["occurence-ratios"]
     return occurrences
 
@@ -531,19 +550,19 @@ def determineWinners(possibleMotifs,positionSpecificStatistics):
     motifWinners = {}
     
     index = 0
-    for t in possibleMotifs.keys():
-        for regEx in possibleMotifs[t].keys():
+    for topology in possibleMotifs.keys():
+        for regEx in possibleMotifs[topology].keys():
             if regEx not in motifWinners.keys():motifWinners[regEx] = {}
-            if t not in motifWinners[regEx].keys():motifWinners[regEx][t] = 0
+            if topology not in motifWinners[regEx].keys():motifWinners[regEx][topology] = 0
             
-            for motif in possibleMotifs[t][regEx]:
+            for motif in possibleMotifs[topology][regEx]:
                 varPosSeq = motif[1:-1]
                 for pos in range(0,len(varPosSeq)):
                     letterAtPos = varPosSeq[pos] 
                     if letterAtPos not in AMINO_ACIDS_ONE_LETTER_CODE:continue
-                    oc = getAminoAcidOccurrences2MotifPosition(regEx,pos,positionSpecificStatistics)
+                    oc = getOccurrencesRatios(regEx,pos,topology,positionSpecificStatistics)
                     assert len(oc) > 0, "wrong assingment"
-                    motifWinners[regEx][t]+=oc[AMINO_ACIDS_ONE_LETTER_CODE.index(letterAtPos)]     
+                    motifWinners[regEx][topology]+=oc[AMINO_ACIDS_ONE_LETTER_CODE.index(letterAtPos)]     
                         
         printProgress(index,len(possibleMotifs.keys())-1,"Determining topology winners...") 
         index = index + 1                
@@ -557,8 +576,7 @@ def printProgress(steps,maximum,name="todo", bar_length = 20, width = 20):
         percent = float(steps) / maximum
     arrow = '-' * int(round(percent*bar_length) - 1) + '>'
     spaces = ' ' * (bar_length - len(arrow))
-    sys.stdout.write("\r{0: <{1}} : [{2}]{3}%".format(\
-                     name, width, arrow + spaces, int(round(percent*100))))
+    sys.stdout.write("\r{0: <{1}} : [{2}]{3}%".format(name, width, arrow + spaces, int(round(percent*100))))
     sys.stdout.flush()    
     
     if steps >= maximum:     
@@ -609,7 +627,10 @@ if __name__ == "__main__":
     
     if arguments.display_clustermap is True:
         ''' Generating panda.DataFrames from position specific statistics '''      
-        dataFrames = [{"title":"Clustering based on raw data (position specific amino acid occurrences)","dataFrame":getDataFrameFromOccurrences(positionSpecificStatistics)},{"title":"Clustering based on spearman rank correlation","dataFrame":getDataFrameFromSpearman(positionSpecificStatistics)}]
+        #dataFrames = [{"title":"Clustering based on raw data (position specific amino acid occurrences)","dataFrame":getDataFrameFromOccurrences(positionSpecificStatistics)},{"title":"Clustering based on spearman rank correlation","dataFrame":getDataFrameFromSpearman(positionSpecificStatistics)},{"title":"Clustering based on pearson rank correlation","dataFrame":getDataFrameFromPearson(positionSpecificStatistics)}]
         
         ''' Clustering data and presenting within scatter plots '''
-        cluster(dataFrames)
+        #cluster(dataFrames)
+        cluster([{"title":"Clustering based on raw data (position specific amino acid occurrences)","dataFrame":getDataFrameFromOccurrences(positionSpecificStatistics)}])
+        cluster([{"title":"Clustering based on spearman rank correlation","dataFrame":getDataFrameFromSpearman(positionSpecificStatistics)}])
+        cluster([{"title":"Clustering based on pearson rank correlation","dataFrame":getDataFrameFromPearson(positionSpecificStatistics)}])
