@@ -155,7 +155,7 @@ def cluster(dataFrames,cluster = 3):
         
         printProgress(index,len(dataFrames)-1,"Creating cluster plots...")  
         
-    plt.show()
+    #plt.show()
 
 def collectFilePaths(directory):
     filePaths = []
@@ -205,7 +205,7 @@ def createHeatMaps(dataFrames):
         printProgress(index,len(dataFrames.keys())-1,"Creating heatmap...") 
         index = index + 1     
     
-    plt.show()
+    #plt.show()
     
 def exportWinners(motifWinners):
     motifTopologiesFilePath = '.'+os.sep+'inputdata'+os.sep+'motif-topologies.xml'
@@ -374,7 +374,7 @@ def getHeatmapDataFrames(possibleMotifs):
                     dataFrameContent = []
                     for aminoAcid in AMINO_ACIDS_ONE_LETTER_CODE: 
                         #quotient = registrations[pos][aminoAcid] / len(possibleMotifs[topology][regEx])
-                        quotient = (registrations[pos][aminoAcid] / len(possibleMotifs[topology][regEx])) / AMINO_ACID_OCCURRENCES[aminoAcid]
+                        quotient = (registrations[pos][aminoAcid] / len(possibleMotifs[topology][regEx])) / AMINO_ACID_OCCURRENCES[AMINO_ACIDS_ONE_LETTER_CODE.index(aminoAcid)]
                         if quotient != 0.0:quotient = math.log(quotient)
                         dataFrameContent.append(quotient)
                     dataFrames[topology]["dataFrame"].append(dataFrameContent)
@@ -634,3 +634,6 @@ if __name__ == "__main__":
         cluster([{"title":"Clustering based on raw data (position specific amino acid occurrences)","dataFrame":getDataFrameFromOccurrences(positionSpecificStatistics)}])
         cluster([{"title":"Clustering based on spearman rank correlation","dataFrame":getDataFrameFromSpearman(positionSpecificStatistics)}])
         cluster([{"title":"Clustering based on pearson rank correlation","dataFrame":getDataFrameFromPearson(positionSpecificStatistics)}])
+    
+    if arguments.display_heatmap is True or arguments.display_clustermap is True:
+        plt.show()
