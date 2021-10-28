@@ -4,7 +4,10 @@ Membrane proteins play essential roles in cellular processes of organisms. Photo
 high prediction accuracies only in certain families can be classified as functionally important and relevant for family-specific
 functional characteristics. 
 
+## Results
+
 ![Image of Yaktocat](README/1.png)
+![Image of Yaktocat](README/2.png)
 
 ## Conclusion
 In this work, 33 short sequence motifs reported in [[2]](#2) were investigated in 32 polytopic membrane protein families with domains of unknown functions. Transmembrane and nontransmembrane sequence regions were predicted using the TMHMM method [[3]](#3) and topology states were annotated to all detected sequence motif occurrences. These amino acid propensities were derived and employed to define log-odd profiles (LOP) of all variable sequence positions in the investigated motifs. Propensity tendencies according to the topology states were identified using UPGMA and XOM clustering. Both methods pointed to good separability and 
@@ -12,10 +15,6 @@ predictability of the topology state of a motif from its amino acid sequence. An
 Also, the information of the spatial structure and the folding of proteins to be explored can be evaluated by affinities, because the spatial structure of proteins has been stronger conserved in evolution than the sequential composition of the folded protein chains. These are individual motifs or characteristic sequence parts which expose a certain biochemical function of proteins. Why does the nature pursue the principle of structure and function separation? Residues, which support a stable domain folding, are separated from those that induce a specific function. This procedure is a very efficient strategy of evolution. Two areas were simultaneously optimised [[4]](#4): 
 * (i) the stability of the protein backbone in a given folding pattern, 
 * (ii) the design of the amino acid sequence according to a specific function. 
-
-
-![Image of Yaktocat](README/2.png)
-
  
 Read more about this work in the corresponding paper <a href="https://downloads.hindawi.com/archive/2013/249234.pdf" target="_blank">here</a>.
 The corresponding code you will find <a href="https://github.com/Grustentier/sequenceMotifAnalysis/tree/main/sequenceMotifAnalysis/analyseVariableMotifPositions.py">here</a>.
@@ -42,6 +41,9 @@ In genomics and proteomics, membrane protein analysis have shown that such analy
 
 ## Results
 We have evaluated different resulting graphs generated from statistical analysis of consecutive motifs in helical structures of the membrane environment. Our results show that representative motifs with high occurrence in all investigated protein families are responsible for the general importance in alpha-helical membrane structure formation. Further, motifs which often occur with others in their function as so called “hubs” lead to the assumption, that these motifs constitute as important components in helical structures within the membrane. Otherwise, consecutive motifs and hubs which show a high occurrence in certain families only can be classified as important for family-specific functional characteristics. Summarized, we are able to bridge our graphical results from high-throughput analysis of membrane proteins over networking with databases to a biological context.
+
+![Image of Yaktocat](README/3.png)
+![Image of Yaktocat](README/4.png)
 
 ## Conclusions
 Our results and the corresponding graphical visualisation support the understanding and interpretation of structure forming and functional motifs of membrane proteins. Our results are useful to interpret and refine results of common developed approaches. At last we show a simple way to visualise high-dimensional protein data in context to biological relevant information.
