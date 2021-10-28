@@ -5,7 +5,7 @@ high prediction accuracies only in certain families can be classified as functio
 functional characteristics. 
 ![Image of Yaktocat](README/1.png)
 ## ScriptResults
-Each dot in the corresponding clusters represents a variable x-position of a given motif with regex XYn (n-1 variable positions). Clustering results emerging from topology specific amino acid distributions within the x-positions.
+Each dot in the corresponding clusters represents a variable x-position of a given motif with regex XYn (n-1 variable positions). Clustering results emerging from topology specific amino acid distributions within the x-positions. Clusters in first row resulting from principal component analysis (PCA) and clusters in second row from multidimensional scaling (MDS)
 ![Image of Yaktocat](README/2.png)
 
 ## Conclusion
