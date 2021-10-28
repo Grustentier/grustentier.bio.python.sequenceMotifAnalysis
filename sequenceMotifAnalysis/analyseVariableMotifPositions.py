@@ -201,14 +201,13 @@ def createHeatMaps(dataFrames):
     
     #plt.show()
     
-def exportWinners(motifWinners):
-    motifTopologiesFilePath = '.'+os.sep+'inputdata'+os.sep+'motif-topologies.xml'
-    if os.path.exists(motifTopologiesFilePath) is False:
+def exportWinners(motifWinners,filePath = '.'+os.sep+'inputdata'+os.sep+'motif-topologies.xml'):    
+    if os.path.exists(filePath) is False:
         root = ET.Element('motifs')
-        with open(motifTopologiesFilePath, "wb") as f:
+        with open(filePath, "wb") as f:
             f.write(ET.tostring(root))
     
-    tree=ET.parse(motifTopologiesFilePath)
+    tree=ET.parse(filePath)
     root=tree.getroot()
      
     for regEx in motifWinners.keys():
@@ -222,7 +221,7 @@ def exportWinners(motifWinners):
         motifElement.set("topology", winnerTopology)   
         root.append(motifElement)   
         
-    with open(motifTopologiesFilePath, "wb") as f:
+    with open(filePath, "wb") as f:
         f.write(ET.tostring(root))
     
 def getAminoAcidLetters():
@@ -470,11 +469,11 @@ def getAminoAcidOccurrencesinNatureFromWiki():
     
     return [wiki[aa] for aa in AMINO_ACIDS_ONE_LETTER_CODE]
 
-def getAminoAcidOccurrencesinNatureFromTusnady():  
+def getAminoAcidOccurrencesinNatureFromTusnady(filePath = '.'+os.sep+"inputdata"+os.sep+"pdbtmalpha.xml"):  
     print("\n\nDetermining amino acid occurrences in nature based on Tusnady (http://pdbtm.enzim.hu/)\n")
     try:       
         occurrences = [0 for _ in AMINO_ACIDS_ONE_LETTER_CODE]
-        doc = xml.dom.minidom.parse('.'+os.sep+"inputdata"+os.sep+"pdbtmalpha.xml")
+        doc = xml.dom.minidom.parse(filePath)
         sequences2One = ""
         
         for seq in doc.getElementsByTagName('SEQ'):
