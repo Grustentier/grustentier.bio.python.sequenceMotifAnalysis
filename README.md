@@ -4,7 +4,7 @@ Membrane proteins play essential roles in cellular processes of organisms. Photo
 high prediction accuracies only in certain families can be classified as functionally important and relevant for family-specific
 functional characteristics. 
 
-![Image of Yaktocat](separationOfVarMotifPos.png)
+![Image of Yaktocat](README/1.png)
 
 ## Conclusion
 In this work, 33 short sequence motifs reported in [[2]](#2) were investigated in 32 polytopic membrane protein families with domains of unknown functions. Transmembrane and nontransmembrane sequence regions were predicted using the TMHMM method [[3]](#3) and topology states were annotated to all detected sequence motif occurrences. These amino acid propensities were derived and employed to define log-odd profiles (LOP) of all variable sequence positions in the investigated motifs. Propensity tendencies according to the topology states were identified using UPGMA and XOM clustering. Both methods pointed to good separability and 
@@ -12,6 +12,9 @@ predictability of the topology state of a motif from its amino acid sequence. An
 Also, the information of the spatial structure and the folding of proteins to be explored can be evaluated by affinities, because the spatial structure of proteins has been stronger conserved in evolution than the sequential composition of the folded protein chains. These are individual motifs or characteristic sequence parts which expose a certain biochemical function of proteins. Why does the nature pursue the principle of structure and function separation? Residues, which support a stable domain folding, are separated from those that induce a specific function. This procedure is a very efficient strategy of evolution. Two areas were simultaneously optimised [[4]](#4): 
 * (i) the stability of the protein backbone in a given folding pattern, 
 * (ii) the design of the amino acid sequence according to a specific function. 
+
+
+![Image of Yaktocat](README/2.png)
 
  
 Read more about this work in the corresponding paper <a href="https://downloads.hindawi.com/archive/2013/249234.pdf" target="_blank">here</a>.
