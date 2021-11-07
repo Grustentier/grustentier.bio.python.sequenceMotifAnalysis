@@ -38,17 +38,20 @@ BioData Mining 6, 21 (2013). https://doi.org/10.1186/1756-0381-6-21
 '''
 
 import os
-import re
 import sys
 import argparse
 import networkx as nx
 import matplotlib.pyplot as plt 
 import xml.etree.ElementTree as ET
-from cv2 import data
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from sequenceMotifAnalysis.includes import fileUtils as fU
+from sequenceMotifAnalysis.includes import stringUtils as sU
+from sequenceMotifAnalysis.includes import letters, dataCollecting as dC
 
 parser = argparse.ArgumentParser(description='Code for analysis of variable sequence motif positions  for different topologies.')
-parser.add_argument('--fasta_input_dir', default='.'+os.sep+'testdata'+os.sep+'fasta'+os.sep+'rhodopsins', help='Path to the input dir including fasta files.')
-parser.add_argument('--tmhmm_input_dir', default='.'+os.sep+'testdata'+os.sep+'tmhmm'+os.sep+'rhodopsins', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.') 
+parser.add_argument('--fasta_input_dir', default=os.path.dirname(__file__) + os.sep + 'testdata' + os.sep + 'fasta' + os.sep + 'rhodopsins', help='Path to the input dir including fasta files.')
+parser.add_argument('--tmhmm_input_dir', default=os.path.dirname(__file__) + os.sep + 'testdata' + os.sep + 'tmhmm' + os.sep + 'rhodopsins', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.') 
 parser.add_argument('--min_variable_positions', default=3, type=int, help='The min number of min variable x- position of a given sequence motif XYn by n-1 variable postions like GG4 = GxxxG')
 parser.add_argument('--max_variable_positions', default=9, type=int, help='The max number of min variable x- position of a given sequence motif XYn by n-1 variable postions like GG4 = GxxxG')
 parser.add_argument('--max_nodes', default=100, type=int, help='The max number of graph nodes to visualize') 
@@ -57,97 +60,13 @@ parser.add_argument('--as_tree', default=False, type=str, help='True or 1 for di
  
 arguments = parser.parse_args() 
 
-AMINO_ACIDS_ONE_LETTER_CODE_ALPHABETICAL = ["A","C","D","E","F","G","H","I","K","L","M","N","P","Q","R","S","T","V","W","Y"]
-
-def boolean_string(s):
-    if str(s).lower() not in ['false', 'true', '1', '0']:
-        raise ValueError('Not a valid boolean string')
-    return str(s).lower() == 'true' or str(s).lower() == '1'
-        
-def cleanString(string,replacement='-'):
-    a =  re.sub('[^a-zA-Z0-9.?]',replacement,string) 
-    return re.sub(replacement+'+', replacement, a)
-
-def collectFilePaths(directory):
-    filePaths = []
-    for root, _, files in os.walk(directory):  
-        if root.endswith(os.sep) is False:
-            root+=os.sep
-        filePaths.extend([root + file for file in files])
-    return filePaths
-
-def getFastaData(filePath):
-    file = open(filePath, 'r')
-    lines = file.readlines()    
-    fastaData = []
     
-    for line in lines:
-        line = str(line).replace("\n","")
-        if str(line).startswith(">"):
-            fastaData.append({"id":line[1:],"sequence":""} ) 
-        else:
-            fastaData[-1]["sequence"]+=line
-    
-    file.close() 
-    return fastaData
-
-def getTmhmmData(filePath):
-    file = open(filePath, 'r')
-    lines = file.readlines()    
-    tmhmmData = []
-    TMHMM_PROTEIN = None
-    
-    for line in lines:        
-        line = str(line).replace("\n","")
-        if str(line).startswith("<pre>"):            
-            TMHMM_PROTEIN = {"id":str(line).split(" ")[1],"areas":[]}
-            
-        if str(line).startswith("</pre>"):
-            tmhmmData.append(TMHMM_PROTEIN)
-            TMHMM_PROTEIN = None
-            
-        if TMHMM_PROTEIN is not None and str(line).startswith(TMHMM_PROTEIN["id"]):
-            line = cleanString(line)
-            split = str(line).strip(" ").split("-")
-            TMHMM_PROTEIN["areas"].append({"topology":str(split[-3]).lower(),"from":split[-2],"to":split[-1]})
-    
-    file.close() 
-    return tmhmmData
-
-def collectFastaData(fastaFilePaths):
-    fastaData = []   
-   
-    for fastaFilePath in fastaFilePaths: 
-        data = getFastaData(fastaFilePath)
-        if data is not None:
-            fastaData.extend(data)       
-            
-    return fastaData
-
-def collectTmhmmData(tmhmmFilePaths):
-    tmhmmData = []    
-   
-    for tmhmmFilePath in tmhmmFilePaths:
-        data = getTmhmmData(tmhmmFilePath)
-        if data is not None:
-            tmhmmData.extend(data)
-            
-    return tmhmmData 
-
-def findCorrespondingFastaData(tmhmm_id,fastaData):    
-    for data in fastaData: 
-        fasta_id = data["id"]  
-        if str(fasta_id).lower() == str(tmhmm_id).lower():
-            return data
-        
-    return None
-    
-def collectTopologySpecficSubSequences(fastaData,tmhmmData): 
+def collectTopologySpecficSubSequences(fastaData, tmhmmData): 
     subsequences = [] 
    
     for data_tmhmm in tmhmmData:
         tmhmm_id = data_tmhmm["id"]
-        current_fastaData = findCorrespondingFastaData(tmhmm_id,fastaData)
+        current_fastaData = dC.findCorrespondingFastaData(tmhmm_id, fastaData)
         if current_fastaData is None:
             continue
 
@@ -166,53 +85,57 @@ def collectTopologySpecficSubSequences(fastaData,tmhmmData):
                             
     return subsequences     
 
-def printProgress(steps,maximum,name="progress", bar_length = 20, width = 20):  
+
+def printProgress(steps, maximum, name="progress", bar_length=20, width=20):  
     if maximum == 0:
         percent = 1.0
     else:
         percent = float(steps) / maximum
-    arrow = '-' * int(round(percent*bar_length) - 1) + '>'
-    spaces =  ' ' * (bar_length - len(arrow))
-    #sys.stdout.write("\r{0: <{1}} : [{2}]{3}%".format(name, width, arrow + spaces, int(round(percent*100))))
-    sys.stdout.write("\r{0: <{1}}[{2}]{3}%".format("", 0, arrow + spaces, int(round(percent*100))))
+    arrow = '-' * int(round(percent * bar_length) - 1) + '>'
+    spaces = ' ' * (bar_length - len(arrow))
+    # sys.stdout.write("\r{0: <{1}} : [{2}]{3}%".format(name, width, arrow + spaces, int(round(percent*100))))
+    sys.stdout.write("\r{0: <{1}}[{2}]{3}%".format("", 0, arrow + spaces, int(round(percent * 100))))
     sys.stdout.flush()    
     
     if steps >= maximum:     
         sys.stdout.write('\n\n')  
+
         
 def createConsecutiveMotifsStatistics(topologySpecificSubSequences): 
     statistics = {}
 
     for sequence in topologySpecificSubSequences:        
-        for i in range(0,len(sequence)):            
-            for j in range(arguments.min_variable_positions,arguments.max_variable_positions+1): 
+        for i in range(0, len(sequence)):            
+            for j in range(arguments.min_variable_positions, arguments.max_variable_positions + 1): 
                 if (i + j) >= len(sequence):
                     continue    
-                regEx1 = sequence[i]+sequence[i+j]+str(j)  
-                motifSeq1 = sequence[i:i+j+1]                 
-                for l in range(arguments.min_variable_positions,arguments.max_variable_positions+1):  
-                    if (i+j+1 + l) >= len(sequence):
+                regEx1 = sequence[i] + sequence[i + j] + str(j)  
+                motifSeq1 = sequence[i:i + j + 1]                 
+                for l in range(arguments.min_variable_positions, arguments.max_variable_positions + 1):  
+                    if (i + j + 1 + l) >= len(sequence):
                         continue
-                    regEx2 = sequence[i+j+1]+sequence[i+j+1+l]+str(l) 
-                    motifSeq2 = sequence[i+j+1:i+j+1+l+1]                        
+                    regEx2 = sequence[i + j + 1] + sequence[i + j + 1 + l] + str(l) 
+                    motifSeq2 = sequence[i + j + 1:i + j + 1 + l + 1]                        
                     cmKey = regEx1 + "-" + regEx2                     
                     if cmKey not in statistics.keys():
-                        statistics[cmKey] = {"sequence":sequence,"regEx1":regEx1,"regEx2":regEx2,"motifSequence1":motifSeq1,"motifSequence2":motifSeq2,"occurrence":1}
+                        statistics[cmKey] = {"sequence":sequence, "regEx1":regEx1, "regEx2":regEx2, "motifSequence1":motifSeq1, "motifSequence2":motifSeq2, "occurrence":1}
                     else:
                         statistics[cmKey]["occurrence"] += 1
         
     return statistics
+
         
-def getTop(g,node):
+def getTop(g, node):
     nodes = g.predecessors(node) 
     if len(list(nodes)) == 0: 
         return node
     for n in nodes:
-        return getTop(g,n)        
+        return getTop(g, n)        
     return None
 
+
 def getDiGraph(statistics):
-    graph =  nx.DiGraph()
+    graph = nx.DiGraph()
          
     if arguments.max_nodes is not None:
         statistics = statistics[0:arguments.max_nodes]
@@ -223,79 +146,82 @@ def getDiGraph(statistics):
             regEx2 = listEntry[1]["regEx2"] 
             graph.add_node(regEx1)
             graph.add_node(regEx2)
-            #weight = listEntry[1]["occurrence"] * int(listEntry[1]["regEx1"][2:]) * int(listEntry[1]["regEx2"][2:])
-            graph.add_edge(regEx1,regEx2,weight=listEntry[1]["occurrence"]) 
+            # weight = listEntry[1]["occurrence"] * int(listEntry[1]["regEx1"][2:]) * int(listEntry[1]["regEx2"][2:])
+            graph.add_edge(regEx1, regEx2, weight=listEntry[1]["occurrence"]) 
         except: 
             pass 
         
     return graph 
 
-def getColorFromDatabase(regEx,motifTopologiesFilePath = '.'+os.sep+'inputdata'+os.sep+'motif-topologies.xml'):
-    colors={False:"gray",None:"gray","tm":"#cc4c48","ntm":"#4ab3c9","trans":"#8cb555"}    
+
+def getColorFromDatabase(regEx, motifTopologiesFilePath=os.path.dirname(__file__) + os.sep + 'inputdata' + os.sep + 'motif-topologies.xml'):
+    colors = {False:"gray", None:"gray", "tm":"#cc4c48", "ntm":"#4ab3c9", "trans":"#8cb555"}    
     if os.path.exists(motifTopologiesFilePath) is False:return colors[False]
     
-    tree=ET.parse(motifTopologiesFilePath)
-    root=tree.getroot()
+    tree = ET.parse(motifTopologiesFilePath)
+    root = tree.getroot()
 
-    motifElement = root.find(".//*[@regEx='"+regEx+"']")
+    motifElement = root.find(".//*[@regEx='" + regEx + "']")
     if motifElement is None:
         return colors[None] 
     
     return colors[motifElement.get("topology")]
 
+
 def createGraph(statistics):
     statistics = sorted(statistics.items(), key=lambda x: x[1]["occurrence"], reverse=True)
     graph = getDiGraph(statistics)
     
-    if arguments.as_tree is True:
-        layout = nx.nx_pydot.graphviz_layout(graph,prog='dot')
+    if sU.asBoolean(arguments.as_tree) is True:
+        layout = nx.nx_pydot.graphviz_layout(graph, prog='dot')
     else:  
         layout = nx.nx_pydot.graphviz_layout(graph)
         
-    labels = nx.get_edge_attributes(graph,'weight')
-    nx.draw_networkx_edge_labels(graph,layout,edge_labels=labels)
+    labels = nx.get_edge_attributes(graph, 'weight')
+    nx.draw_networkx_edge_labels(graph, layout, edge_labels=labels)
     colorMap = [getColorFromDatabase(node) for node in graph.nodes()]
     
-    cent = nx.centrality.betweenness_centrality(graph,weight=None,normalized=False,endpoints=True) 
-    nx.draw(graph,layout,width=1,linewidths=1,node_size=[v*500 for v in cent.values()],node_color=colorMap, edge_color='silver',alpha=0.9,labels={node:node for node in graph.nodes()})
+    cent = nx.centrality.betweenness_centrality(graph, weight=None, normalized=False, endpoints=True) 
+    nx.draw(graph, layout, width=1, linewidths=1, node_size=[v * 500 for v in cent.values()], node_color=colorMap, edge_color='silver', alpha=0.9, labels={node:node for node in graph.nodes()})
     plt.axis('off')
     
     print("\n\nCopy the following regExes and assing this to --regexes parameter within the analyseVariableMotifPositions.py script for analyzing variable motif positions.")
-    print(str([node for node in graph.nodes()]).replace("'","").replace("[","").replace("]",""))
+    print(str([node for node in graph.nodes()]).replace("'", "").replace("[", "").replace("]", ""))
     print("")
 
+
 if __name__ == "__main__":  
-    fastaFilePaths = collectFilePaths(arguments.fasta_input_dir)
-    assert len(fastaFilePaths)>0,"No fasta files have been found!!!"
-    tmhmmFilePaths = collectFilePaths(arguments.tmhmm_input_dir)
-    assert len(tmhmmFilePaths)>0,"No tmhmm files have been found!!!"       
+    fastaFilePaths = fU.collectFilePaths(arguments.fasta_input_dir)
+    assert len(fastaFilePaths) > 0, "No fasta files have been found!!!"
+    tmhmmFilePaths = fU.collectFilePaths(arguments.tmhmm_input_dir)
+    assert len(tmhmmFilePaths) > 0, "No tmhmm files have been found!!!"       
         
-    AMINO_ACIDS_ONE_LETTER_CODE = AMINO_ACIDS_ONE_LETTER_CODE_ALPHABETICAL   
+    AMINO_ACID_LETTERS = letters.AMINO_ACID_LETTERS_ALPHABETICAL
     
     steps = 5
     step = 0 
     
-    printProgress(step,steps)
+    printProgress(step, steps)
     step = step + 1 
     
-    fastaData = collectFastaData(fastaFilePaths)  
-    printProgress(step,steps)
+    fastaData = dC.collectFastaData(fastaFilePaths)  
+    printProgress(step, steps)
     step = step + 1
     
-    tmhmmData = collectTmhmmData(tmhmmFilePaths)
-    printProgress(step,steps)
+    tmhmmData = dC.collectTmhmmData(tmhmmFilePaths)
+    printProgress(step, steps)
     step = step + 1 
     
-    topologySpecificSubSequences = collectTopologySpecficSubSequences(fastaData,tmhmmData)
-    printProgress(step,steps)
+    topologySpecificSubSequences = collectTopologySpecficSubSequences(fastaData, tmhmmData)
+    printProgress(step, steps)
     step = step + 1
     
     statistics = createConsecutiveMotifsStatistics(topologySpecificSubSequences)
-    printProgress(step,steps)
+    printProgress(step, steps)
     step = step + 1  
     
     createGraph(statistics)
-    printProgress(step,steps)
+    printProgress(step, steps)
     step = step + 1  
     
     plt.show()    
