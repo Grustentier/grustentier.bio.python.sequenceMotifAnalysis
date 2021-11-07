@@ -50,8 +50,8 @@ from sequenceMotifAnalysis.includes import stringUtils as sU
 from sequenceMotifAnalysis.includes import letters, dataCollecting as dC
 
 parser = argparse.ArgumentParser(description='Code for analysis of variable sequence motif positions  for different topologies.')
-parser.add_argument('--fasta_input_dir', default=os.path.dirname(__file__) + os.sep + 'testdata' + os.sep + 'fasta' + os.sep + 'rhodopsins', help='Path to the input dir including fasta files.')
-parser.add_argument('--tmhmm_input_dir', default=os.path.dirname(__file__) + os.sep + 'testdata' + os.sep + 'tmhmm' + os.sep + 'rhodopsins', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.') 
+parser.add_argument('--fasta_input_dir', default=os.path.dirname(__file__) + os.sep + 'inputdata' + os.sep + 'fasta' + os.sep + 'rhodopsins', help='Path to the input dir including fasta files.')
+parser.add_argument('--tmhmm_input_dir', default=os.path.dirname(__file__) + os.sep + 'inputdata' + os.sep + 'tmhmm' + os.sep + 'rhodopsins', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.') 
 parser.add_argument('--min_variable_positions', default=3, type=int, help='The min number of min variable x- position of a given sequence motif XYn by n-1 variable postions like GG4 = GxxxG')
 parser.add_argument('--max_variable_positions', default=9, type=int, help='The max number of min variable x- position of a given sequence motif XYn by n-1 variable postions like GG4 = GxxxG')
 parser.add_argument('--max_nodes', default=100, type=int, help='The max number of graph nodes to visualize') 

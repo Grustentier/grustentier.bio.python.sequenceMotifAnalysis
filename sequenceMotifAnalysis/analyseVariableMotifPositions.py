@@ -56,20 +56,20 @@ from sequenceMotifAnalysis.includes import dataCollecting as dC
 from sequenceMotifAnalysis.includes import dataVisualization as dV
 
 parser = argparse.ArgumentParser(description='Code for analysis of variable sequence motif positions  for different topologies.')
-parser.add_argument('--fasta_input_dir', default=os.path.dirname(__file__) + os.sep + 'testdata' + os.sep + 'fasta' + os.sep + 'DUF', help='Path to the input dir including fasta files.')
-parser.add_argument('--tmhmm_input_dir', default=os.path.dirname(__file__) + os.sep + 'testdata' + os.sep + 'tmhmm' + os.sep + 'DUF', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
+parser.add_argument('--fasta_input_dir', default=os.path.dirname(__file__) + os.sep + 'inputdata' + os.sep + 'fasta' + os.sep + 'DUF', help='Path to the input dir including fasta files.')
+parser.add_argument('--tmhmm_input_dir', default=os.path.dirname(__file__) + os.sep + 'inputdata' + os.sep + 'tmhmm' + os.sep + 'DUF', help='Path to the input dir including tmhmm files, generated extensive and  with no graphics.')
 '''Gerstein pattern (regExes) '''
 parser.add_argument('--regexes', default='PG10,LF10,PG9,LF9,VF8,LF8,GY8,GA7,AG7,AA7,GG7,LY6,VG6,SA6,PG6,AL6,PG5,GS5,LG5,AG5,GN4,IV4,IL4,GS4,GG4,SG4,VL4,AS4,GA4,AG4,SA3,AA3,GL3', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
 ''' Other regExes maybe coming from console after running analyseConsecutiveMotifs.py to specify/predict the structure topology of given motifs ''' 
 # parser.add_argument('--regexes', default='WP5, LL7, YL3, DF7, LL5, YP8, DA3, KF3, TL3, LL4, LL6, WL7, LL3, DK4, DP5, WY3, PW3, TL4, YA7, RP9, LA4, WL6, KG4, KL7, WT4, PL6, PL3, DV6, RD3, WT3, IL5, PL8, YT7, YL9, GL3, DG8, DP6, AF4, FL4, GF4, GA3, YL6, LF8, DM3, IG3, WF5, MG4, LA3, TL7, LY4, RT8, KL8, YT6, TL9, MT3, GA4, LK5, LP3, DT4, DG7, DL8, AL8, DT5, YK8, GL4, LE4, LV7, WP4, WL8, DL7, RT7', type=str, help='Comma separted REGEXES like XXn representing a starting and a ending aminoacid by n - 1 variable position between both X.')
 parser.add_argument('--display_heatmap', default=True, type=str, help='True or 1 for displaying heatmap representing amino acid occurrences at variable position of motifs defined at --regexes.')
 parser.add_argument('--display_clustermap', default=True, type=str, help='True or 1 for displaying clustermaps representing clustered variable positions of motifs defined at --regexes.')
-parser.add_argument('--plotting_3d', default=True, type=str, help='True or 1 for displaying cluster results within 3d plots')
+parser.add_argument('--plotting_3d', default=False, type=str, help='True or 1 for displaying cluster results within 3d plots')
 parser.add_argument('--sort_by', default=None, type=str, help='Selection: alphabetical, hydrophob or None; Sorting amino acid presentation by properties.')
 arguments = parser.parse_args() 
 
     
-def exportWinners(motifWinners, filePath='.' + os.sep + 'inputdata' + os.sep + 'motif-topologies.xml'):    
+def exportWinners(motifWinners, filePath=os.path.dirname(__file__) + os.sep + 'inputdata' + os.sep + 'motif-topologies.xml'):    
     if os.path.exists(filePath) is False:
         root = ET.Element('motifs')
         with open(filePath, "wb") as f:
