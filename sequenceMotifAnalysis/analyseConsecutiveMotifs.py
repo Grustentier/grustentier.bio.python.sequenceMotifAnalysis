@@ -45,8 +45,8 @@ import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from pyvis.network import Network
 from sequenceMotifAnalysis.includes import fileUtils as fU
-from sequenceMotifAnalysis.includes import stringUtils as sU
 from sequenceMotifAnalysis.includes import letters, dataCollecting as dC
 
 parser = argparse.ArgumentParser(description='Code for analysis of variable sequence motif positions  for different topologies.')
@@ -56,7 +56,6 @@ parser.add_argument('--min_variable_positions', default=3, type=int, help='The m
 parser.add_argument('--max_variable_positions', default=9, type=int, help='The max number of min variable x- position of a given sequence motif XYn by n-1 variable postions like GG4 = GxxxG')
 parser.add_argument('--max_nodes', default=100, type=int, help='The max number of graph nodes to visualize') 
 parser.add_argument('--topology', default="tm", type=str, help='The topology to analyse. (tm for transmembrane or ntm for none-transmembrane')
-parser.add_argument('--as_tree', default=False, type=str, help='True or 1 for displaying graph as tree.')
  
 arguments = parser.parse_args() 
 
@@ -144,10 +143,9 @@ def getDiGraph(statistics):
         try:
             regEx1 = listEntry[1]["regEx1"]
             regEx2 = listEntry[1]["regEx2"] 
-            graph.add_node(regEx1)
-            graph.add_node(regEx2)
-            # weight = listEntry[1]["occurrence"] * int(listEntry[1]["regEx1"][2:]) * int(listEntry[1]["regEx2"][2:])
-            graph.add_edge(regEx1, regEx2, weight=listEntry[1]["occurrence"]) 
+            graph.add_node(regEx1, color=getColorFromDatabase(regEx1))
+            graph.add_node(regEx2, color=getColorFromDatabase(regEx2))
+            graph.add_edge(regEx1, regEx2, label=listEntry[1]["occurrence"]) 
         except: 
             pass 
         
@@ -169,26 +167,26 @@ def getColorFromDatabase(regEx, motifTopologiesFilePath=os.path.dirname(__file__
 
 
 def createGraph(statistics):
+    
+    htmlFilePath = os.path.dirname(__file__) + os.sep + 'inputdata' + os.sep + "graph.html"
     statistics = sorted(statistics.items(), key=lambda x: x[1]["occurrence"], reverse=True)
-    graph = getDiGraph(statistics)
-    
-    if sU.asBoolean(arguments.as_tree) is True:
-        layout = nx.nx_pydot.graphviz_layout(graph, prog='dot')
-    else:  
-        layout = nx.nx_pydot.graphviz_layout(graph)
-        
-    labels = nx.get_edge_attributes(graph, 'weight')
-    nx.draw_networkx_edge_labels(graph, layout, edge_labels=labels)
-    colorMap = [getColorFromDatabase(node) for node in graph.nodes()]
-    
-    cent = nx.centrality.betweenness_centrality(graph, weight=None, normalized=False, endpoints=True) 
-    nx.draw(graph, layout, width=1, linewidths=1, node_size=[v * 500 for v in cent.values()], node_color=colorMap, edge_color='silver', alpha=0.9, labels={node:node for node in graph.nodes()})
-    plt.axis('off')
+    graph = getDiGraph(statistics)    
+    cent = nx.centrality.betweenness_centrality(graph, weight=None, normalized=False, endpoints=True)
     
     print("\n\nCopy the following regExes and assing this to --regexes parameter within the analyseVariableMotifPositions.py script for analyzing variable motif positions.")
     print(str([node for node in graph.nodes()]).replace("'", "").replace("[", "").replace("]", ""))
     print("")
-
+    
+    for nodeAsKey in cent.keys():    
+        graph.nodes.get(nodeAsKey).update({"size":cent[nodeAsKey]})  
+    
+    net = Network(notebook=True)
+    net.show_buttons(filter_=['physics'])
+    net.width = "70%"
+    net.height = "100%"
+    net.from_nx(graph) 
+    net.show(htmlFilePath)
+    os.system("open " + htmlFilePath)
 
 if __name__ == "__main__":  
     fastaFilePaths = fU.collectFilePaths(arguments.fasta_input_dir)
@@ -204,7 +202,7 @@ if __name__ == "__main__":
     printProgress(step, steps)
     step = step + 1 
     
-    fastaData = dC.collectFastaData(fastaFilePaths)  
+    fastaData = dC.collectFastaData(fastaFilePaths) 
     printProgress(step, steps)
     step = step + 1
     
