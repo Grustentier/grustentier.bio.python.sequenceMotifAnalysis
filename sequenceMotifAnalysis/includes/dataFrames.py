@@ -8,6 +8,7 @@ import pandas
 from scipy import stats
 
 
+# Returns a topology specific dataFrame collection for final heatmap generation
 def getDataFrames4Heatmap(possibleMotifs, AMINO_ACID_LETTERS, AMINO_ACID_OCCURRENCES):
     dataFrames = {}    
    
@@ -45,12 +46,14 @@ def getDataFrames4Heatmap(possibleMotifs, AMINO_ACID_LETTERS, AMINO_ACID_OCCURRE
     return dataFrames
 
 
+# Returns a dataFrame of type pandas.DataFrame including position specific amino acid occurrence ratios 
 def getDataFrameFromOccurrences(positionSpecificStatistics, AMINO_ACID_LETTERS):
     data = {AMINO_ACID_LETTERS[aaIndex]:[positionSpecificStatistics[i]["occurrence-ratios"][aaIndex] for i in range(0, len(positionSpecificStatistics))] for aaIndex in range(0, len(AMINO_ACID_LETTERS))}
     data["topology"] = [positionSpecificStatistics[i]["topology"] for i in range(0, len(positionSpecificStatistics))]
     return pandas.DataFrame(data)
 
 
+# Returns a dataFrame of type pandas.DataFrame including spearman correlation values derived from comparison of position specific occurrence-ratios
 def getDataFrameFromSpearman(positionSpecificStatistics):
     data = {}
 
@@ -66,6 +69,7 @@ def getDataFrameFromSpearman(positionSpecificStatistics):
     return pandas.DataFrame(data) 
 
 
+# Returns a dataFrame of type pandas.DataFrame including pearson correlation values derived from comparison of position specific occurrence-ratios
 def getDataFrameFromPearson(positionSpecificStatistics):
     data = {}
 

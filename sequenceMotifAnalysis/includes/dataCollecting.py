@@ -7,6 +7,7 @@ Created on 07.11.2021
 from sequenceMotifAnalysis.includes.stringUtils import cleanString
 
 
+# Returns a data collection of FASTA data to assigned fastaFilePaths parameter
 def collectFastaData(fastaFilePaths):
     fastaData = []
 
@@ -18,6 +19,7 @@ def collectFastaData(fastaFilePaths):
     return fastaData
 
 
+# Returns a data collection of TMHMM data to assigned tmhmmFilePaths parameter
 def collectTmhmmData(tmhmmFilePaths):
     tmhmmData = []
     
@@ -29,6 +31,7 @@ def collectTmhmmData(tmhmmFilePaths):
     return tmhmmData 
 
 
+# Returns corresponding TMHMM data to assigned fasta_id identifier
 def findCorrespondingTmhmmData(fasta_id, tmhmmData):    
     for data in tmhmmData: 
         tmhmm_id = data["id"]  
@@ -38,6 +41,7 @@ def findCorrespondingTmhmmData(fasta_id, tmhmmData):
     return None
 
 
+# Returns corresponding FASTA data to assigned tmhmm_id identifier
 def findCorrespondingFastaData(tmhmm_id, fastaData):    
     for data in fastaData: 
         fasta_id = data["id"]  
@@ -47,6 +51,7 @@ def findCorrespondingFastaData(tmhmm_id, fastaData):
     return None
 
 
+# Returns FASTA data as dictionary after parsing FASTA file to assigned filePath parameter
 def getFastaData(filePath):
     file = open(filePath, 'r')
     lines = file.readlines()    
@@ -63,6 +68,7 @@ def getFastaData(filePath):
     return fastaData
 
 
+# Returns TMHMM data as dictionary after parsing TMHMM file to assigned filePath parameter
 def getTmhmmData(filePath):
     file = open(filePath, 'r')
     lines = file.readlines()    

@@ -10,6 +10,7 @@ AMINO_ACID_LETTERS_SMALL = ["A", "C", "D", "G", "N", "P", "V", "S", "T", "E", "F
 AMINO_ACID_LETTERS_POLAR = ["C", "D", "E", "H", "K", "N", "Q", "R", "S", "T", "W", "Y", "A", "F", "G", "I", "L", "M", "P", "V"]
 
 
+# Returns sorted amino acid letters to properties "hydrophobic", "small", "small" or default "alphabetical"
 def getAminoAcidLetters(sort_by):
     if str(sort_by).lower() == "hydrophob":
         return AMINO_ACID_LETTERS_HYDROPHOB

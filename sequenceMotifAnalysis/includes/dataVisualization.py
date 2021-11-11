@@ -15,6 +15,8 @@ TOPOLOGIES = ['tm', 'ntm', 'trans']
 COLORS = ['#cc4c48', '#4ab3c9', '#8cb555', 'c', 'm']
 
 
+# Visualization of variable x-positions of selected sequnece motifs based on topology specific amino acid distribution using PCA and MDS within 2D plots
+# Each dot within a plot represent a x-position of one of the selected sequence motifs
 def cluster(dataFrames, cluster=3):    
         
     for index in range(0, len(dataFrames)):   
@@ -91,7 +93,9 @@ def cluster(dataFrames, cluster=3):
         
     # plt.show()
 
-    
+
+# Visualization of variable x-positions of selected sequnece motifs based on topology specific amino acid distribution using PCA and MDS within 3D plots
+# Each dot within a plot represent a x-position of one of the selected sequence motifs   
 def cluster3d(dataFrames):
     
     fig = plt.figure()
@@ -138,7 +142,8 @@ def cluster3d(dataFrames):
         
     # plt.show()
 
-    
+
+# Visualization of position specific amino acid distributions of selected sequence motif within customized heatmap    
 def createHeatMaps(dataFrames, AMINO_ACID_LETTERS): 
     fig, a = plt.subplots(nrows=len(dataFrames.keys()))
     fig.subplots_adjust(wspace=0.01)
