@@ -143,7 +143,7 @@ def cluster3d(dataFrames):
     # plt.show()
 
 
-# Visualization of position specific amino acid distributions of selected sequence motif within customized heatmap    
+# Visualization of position specific amino acid distribution data of selected sequence motif within customized heatmap    
 def createHeatMaps(dataFrames, AMINO_ACID_LETTERS): 
     fig, a = plt.subplots(nrows=len(dataFrames.keys()))
     fig.subplots_adjust(wspace=0.01)
